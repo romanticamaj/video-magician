@@ -19,11 +19,12 @@ cp tools/captions.sample.json tools/captions.json
 # 素材放 public/：毛片、bgm.wav、sfx/*.wav、fonts/、cover_bg.png、last_frame.png
 ```
 
-`public/cover_bg.png` = 毛片第 0 幀；`public/last_frame.png` = 最後一幀：
+`public/cover_bg.png` = 毛片第 0 幀；`public/last_frame.png` = **最後一個保留段的結尾幀**
+（cuts 有剪到片尾時不能用毛片最後一幀，會漏出被剪畫面）：
 
 ```bash
 ffmpeg -i 毛片.mov -frames:v 1 public/cover_bg.png
-ffmpeg -sseof -0.1 -i 毛片.mov -frames:v 1 public/last_frame.png
+ffmpeg -ss <最後保留段結尾秒-0.05> -i 毛片.mov -frames:v 1 public/last_frame.png
 ```
 
 ## 工作流程
@@ -34,12 +35,13 @@ ffmpeg -sseof -0.1 -i 毛片.mov -frames:v 1 public/last_frame.png
 ### 2. 字幕
 毛片通常**沒有**現成字幕，標準路徑是三步：
 
-1. **轉錄**：`python tools/transcribe.py <毛片> whisper.json "<專有名詞提示>"`
-   （initial_prompt 先跟使用者要品牌名/人名/術語，中文 ASR 最容易錯這些）。
-2. **起草＋校對**：`python tools/whisper_to_captions.py whisper.json tools/captions.json`
+1. **轉錄**：`python tools/transcribe.py <毛片> local/whisper.json "<專有名詞提示>"`
+   （initial_prompt 先跟使用者要品牌名/人名/術語，中文 ASR 最容易錯這些；
+   中繼檔一律放 `local/`，該目錄被 gitignore）。
+2. **起草＋校對**：`python tools/whisper_to_captions.py local/whisper.json tools/captions.json`
    產生草稿，然後**逐句校對**成正典文字——自己先修明顯 ASR 錯誤（同音字、
    專有名詞、贅字取捨），再把整份草稿列給使用者確認一次。校對只改文字，不動 `t`。
-3. **對齊**：`python tools/align.py whisper.json tools/captions.json src/subtitles.json <總長>`
+3. **對齊**：`python tools/align.py local/whisper.json tools/captions.json src/subtitles.json <總長>`
    ——文字用校對後的正典，時間用 whisper 逐字戳，字級 diff 合併。
 
 捷徑：使用者若提供人工字幕清單（剪映/CapCut 螢幕錄影等），抽格讀出文字＋起始秒

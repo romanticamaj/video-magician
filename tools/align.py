@@ -10,6 +10,8 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 WHISPER, CAPTIONS, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 TOTAL = float(sys.argv[4]) if len(sys.argv) > 4 else 1e9
+GAP = 0.02  # minimum silence between consecutive subtitles
+MIN_MATCH_RATIO = 0.5  # matched-char confidence threshold per line
 
 PUNCT = re.compile(r"[\s，。！？!?～~…、（）()「」\[\]:：;；'\"‘’“”😂-]+")
 
@@ -32,8 +34,9 @@ for seg in whisper:
 
 wstr = "".join(c for c, _, _ in wchars)
 
-# 2. char stream from captions
+# 2. char stream from captions; gap entries become linger barriers
 lines = [c for c in caps if "text" in c]
+gaps = sorted(float(c["t"]) for c in caps if "gap" in c)
 cchars = []  # (char, line_index)
 for li, line in enumerate(lines):
     for c in norm(line["text"]):
@@ -56,42 +59,63 @@ for block in sm.get_matching_blocks():
             ends[li] = we
         matched[li] += 1
 
-# 4. fill unmatched lines from list integer time; guard against far drift
+# 4. fallback for unmatched / low-confidence / drifted lines
 for li, line in enumerate(lines):
-    est = max(0.6, 0.18 * len(norm(line["text"])))
-    if starts[li] is None or abs(starts[li] - float(line["t"])) > 1.6:
+    n = len(norm(line["text"]))
+    est = max(0.6, 0.18 * n)
+    ratio = matched[li] / n if n else 0.0
+    low_conf = ratio < MIN_MATCH_RATIO
+    drifted = starts[li] is not None and abs(starts[li] - float(line["t"])) > 1.6
+    if starts[li] is None or low_conf or drifted:
         starts[li] = float(line["t"])
         ends[li] = float(line["t"]) + est
+        matched[li] = 0
 
-# 5. monotonic + readable ends
-order = sorted(range(len(lines)), key=lambda i: (starts[i], i))
-prev_end = 0.0
-res = []
-for li in order:
-    s = max(starts[li], prev_end + 0.02)
-    e = max(ends[li], s + 0.5)
-    res.append({"i": li, "s": s, "e": e})
-    prev_end = s
+# 5. canonical order preserved; enforce monotonic starts, then linger, then
+#    unconditionally cap every end at the next start (non-overlap guarantee)
+prev_start = -1e9
+for li in range(len(lines)):
+    starts[li] = max(starts[li], prev_start + GAP)
+    ends[li] = max(ends[li], starts[li] + 0.5)
+    prev_start = starts[li]
 
-for j, r in enumerate(res):
-    nxt = res[j + 1]["s"] if j + 1 < len(res) else TOTAL
-    lingered = min(nxt - 0.02, r["e"] + 0.9)
-    r["e"] = max(r["e"], lingered) if lingered > r["s"] else r["e"]
-    r["e"] = min(r["e"], nxt - 0.02) if nxt - 0.02 > r["s"] + 0.3 else r["e"]
+def next_barrier(li):
+    nxt = starts[li + 1] if li + 1 < len(lines) else TOTAL
+    for g in gaps:
+        if ends[li] <= g < nxt:
+            nxt = g
+            break
+    return nxt
+
+for li in range(len(lines)):
+    barrier = next_barrier(li)
+    lingered = min(barrier - GAP, ends[li] + 0.9)
+    if lingered > starts[li] + 0.3:
+        ends[li] = max(min(ends[li], barrier - GAP), min(lingered, barrier - GAP))
+    # readable-duration floor first, then the hard non-overlap cap wins:
+    # dense captions get shortened, never overlapped
+    ends[li] = max(ends[li], starts[li] + 0.3)
+    if li + 1 < len(lines):
+        cap = starts[li + 1] - GAP
+        ends[li] = min(ends[li], cap) if cap > starts[li] else starts[li] + 0.01
 
 out = []
-for r in res:
-    line = lines[r["i"]]
+for li, line in enumerate(lines):
     out.append({
         "text": line["text"],
-        "start": round(r["s"], 3),
-        "end": round(r["e"], 3),
+        "start": round(starts[li], 3),
+        "end": round(ends[li], 3),
         "speaker": line.get("speaker", "host"),
     })
 
 os.makedirs(os.path.dirname(OUT) or ".", exist_ok=True)
 json.dump(out, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-for o, r in zip(out, res):
-    flag = "" if matched[r["i"]] else "  <-- fallback"
+for li, o in enumerate(out):
+    flag = "" if matched[li] else "  <-- fallback"
     print(f'{o["start"]:7.2f} {o["end"]:7.2f}  {o["text"]}{flag}')
 print(len(out), "lines ->", OUT)
+
+# sanity: report any residual overlap (should never fire)
+for a, b in zip(out, out[1:]):
+    if a["end"] > b["start"]:
+        print(f'WARN overlap: "{a["text"]}" ends {a["end"]} after "{b["text"]}" starts {b["start"]}')

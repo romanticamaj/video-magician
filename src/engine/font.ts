@@ -15,7 +15,8 @@ const chenyu = new FontFace(
 chenyu
   .load()
   .then(() => {
-    document.fonts.add(chenyu);
+    // TS 5.9 DOM lib types FontFaceSet without .add; the runtime has it
+    (document.fonts as unknown as {add(f: FontFace): void}).add(chenyu);
     continueRender(handle);
   })
   .catch(() => continueRender(handle));

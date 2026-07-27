@@ -91,11 +91,7 @@ export const Main: React.FC = () => {
       <Sequence from={COVER_FRAMES}>
         {/* source video played as kept segments (jump cuts) */}
         {SEGMENTS.map((s, i) => (
-          <Sequence
-            key={i}
-            from={Math.round(s.out * FPS)}
-            durationInFrames={Math.round(s.dur * FPS)}
-          >
+          <Sequence key={i} from={s.outFrame} durationInFrames={s.durFrames}>
             <OffthreadVideo
               src={staticFile(CONFIG.videoFile)}
               trimBefore={Math.round(s.src * FPS)}
@@ -115,10 +111,12 @@ export const Main: React.FC = () => {
       </Sequence>
 
       {/* cover on top */}
-      <Sequence from={0} durationInFrames={COVER_FRAMES}>
-        <Cover />
-      </Sequence>
-      {CONFIG.sfx.coverWhoosh ? (
+      {CONFIG.cover ? (
+        <Sequence from={0} durationInFrames={COVER_FRAMES}>
+          <Cover />
+        </Sequence>
+      ) : null}
+      {CONFIG.cover && CONFIG.sfx.coverWhoosh ? (
         <Sequence from={0} durationInFrames={100}>
           <Audio src={staticFile(CONFIG.sfx.coverWhoosh)} volume={1} />
         </Sequence>

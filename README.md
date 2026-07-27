@@ -97,10 +97,10 @@ Assets in `public/` (all gitignored): the footage, `cover_bg.png` / `last_frame.
 
 ```bash
 pip install faster-whisper
-python tools/transcribe.py footage.mov whisper.json "domain terms hint"
-python tools/whisper_to_captions.py whisper.json tools/captions.json   # draft → proofread it
-python tools/align.py whisper.json tools/captions.json src/subtitles.json 90.3
-python tools/make_srt.py src/subtitles.json out/subtitles.srt 0.867
+python tools/transcribe.py footage.mov local/whisper.json "domain terms hint"
+python tools/whisper_to_captions.py local/whisper.json tools/captions.json   # draft → proofread it
+python tools/align.py local/whisper.json tools/captions.json src/subtitles.json 90.3
+python tools/make_srt.py src/subtitles.json out/subtitles.srt 0.867 "[[57.68,62.06]]"  # offset, cuts
 ```
 
 Text and timing are separated: `captions.json` holds the *canonical* text — an

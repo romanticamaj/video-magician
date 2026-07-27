@@ -10,7 +10,7 @@ import {
 import {ACCENT, ACCENT_DARK} from './theme';
 import {FONT, HAND_FONT} from './font';
 import {ArrowUpIcon, CheckIcon, ICONS, SparkleIcon} from './icons';
-import {outToSrc} from './cuts';
+import {VIDEO_FRAMES, outToSrc} from './cuts';
 import {CONFIG} from '../videoConfig';
 
 // ---------- helpers ----------
@@ -46,7 +46,7 @@ export const LiquidTitle: React.FC = () => {
     return null;
   }
   const pop = spring({
-    frame,
+    frame: Math.round((t - cfg.from) * fps),
     fps,
     config: {damping: 12, stiffness: 140, mass: 0.9},
     durationInFrames: 18,
@@ -520,9 +520,9 @@ export const EndCard: React.FC = () => {
 // ---------- global polish ----------
 
 export const Polish: React.FC = () => {
+  // local frame within the main sequence; the bar reaches 100% at footage end
   const frame = useCurrentFrame();
-  const {durationInFrames} = useVideoConfig();
-  const progress = Math.min(1, frame / durationInFrames);
+  const progress = Math.min(1, frame / VIDEO_FRAMES);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <AbsoluteFill

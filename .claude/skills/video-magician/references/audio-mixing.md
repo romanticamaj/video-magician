@@ -25,6 +25,11 @@ ffmpeg -y -i sfx.wav -af "loudnorm=I=-30:TP=-4:LRA=7" -ar 44100 -ac 2 sfx_n.wav
 
 ## BGM：正規化＋Sidechain ducking（烘進檔案）
 
+⚠️ **有 jump cuts 時**：預混的 ducking key 是「未剪的人聲」，剪點之後 ducking
+時間軸會偏移。cuts 非空時改在渲染後做 ducking——對 `out/final.mp4` 的成品
+人聲抽出當 key（`adelay` 不需要，時間軸已一致），壓 BGM 後再合回；或接受
+輕度 ducking（≤2 dB）下偏移不可聞的折衷，但要在交付說明中標注。
+
 ```bash
 # BGM = 人聲 -6 dB；ducking ≈2 dB
 # adelay = 封面位移 ms（coverFrames/30*1000，例 26 幀 = 867ms）
@@ -48,13 +53,13 @@ ffmpeg -ss <空檔窗> -t 2 -i public/bgm.wav -af ebur128=framelog=quiet -f null
 
 ```bash
 # 1) 量現值
-ffmpeg -i final.mp4 -af ebur128=framelog=quiet -f null - 2>&1 | grep "I:"
+ffmpeg -i out/final.mp4 -af ebur128=framelog=quiet -f null - 2>&1 | grep "I:"
 # 2) gain = (-14) - 現值，先估再迭代（limiter 會吃掉部分增益）
-ffmpeg -y -i final.mp4 -c:v copy \
+ffmpeg -y -i out/final.mp4 -c:v copy \
   -af "volume=<gain>dB,alimiter=limit=0.75:attack=5:release=60:level=false" \
-  -c:a aac -b:a 192k final_mastered.mp4
+  -c:a aac -b:a 192k out/final_mastered.mp4
 # 3) 驗證 true peak
-ffmpeg -i final_mastered.mp4 -af "ebur128=framelog=quiet:peak=true" -f null - 2>&1 | grep -E "I:|Peak:"
+ffmpeg -i out/final_mastered.mp4 -af "ebur128=framelog=quiet:peak=true" -f null - 2>&1 | grep -E "I:|Peak:"
 ```
 
 ⚠️ limiter ceiling 設 -1.5 dB 時 AAC 編碼會 overshoot 到 0 dBFS——
