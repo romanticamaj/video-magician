@@ -1,0 +1,24 @@
+# dependencies / build
+node_modules/
+out/
+.remotion/
+
+# media assets — not committed (copyrighted / personal footage)
+public/*.mov
+public/*.mp4
+public/*.wav
+public/*.png
+public/sfx/
+public/fonts/
+
+# per-project data (copy the .sample files to create these)
+src/videoConfig.ts
+src/subtitles.json
+tools/captions.json
+
+# local workspace
+local/
+
+# misc
+*.log
+.DS_Store

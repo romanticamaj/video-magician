@@ -1,0 +1,7 @@
+[
+ {"text": "這是第一句字幕", "start": 0.5, "end": 2.0, "speaker": "host"},
+ {"text": "重點大字", "start": 1.8, "end": 3.8, "speaker": "host"},
+ {"text": "AI 是會被上色的關鍵字", "start": 4.0, "end": 6.0, "speaker": "host"},
+ {"text": "來賓的台詞會用不同顏色", "start": 6.5, "end": 8.5, "speaker": "guest"},
+ {"text": "最後一句", "start": 9.0, "end": 10.5, "speaker": "host"}
+]

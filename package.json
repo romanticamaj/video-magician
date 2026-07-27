@@ -1,0 +1,15 @@
+{
+  "name": "video-magician",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio",
+    "render": "remotion render Main out/final.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.499",
+    "@remotion/google-fonts": "^4.0.499",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "remotion": "^4.0.499"
+  }
+}
