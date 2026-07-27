@@ -32,10 +32,20 @@ ffmpeg -sseof -0.1 -i 毛片.mov -frames:v 1 public/last_frame.png
 `ffprobe` 毛片規格；`ffmpeg -af ebur128` 量人聲 LUFS（之後所有音量以此為基準）；抽畫格確認場景 cut 秒數。
 
 ### 2. 字幕
-- 有字幕清單（剪映/CapCut 螢幕錄影）→ 抽格讀出文字＋起始秒寫進 `tools/captions.json`（文字正典）。
-- `python tools/transcribe.py <毛片> whisper.json "<專有名詞提示>"` 拿逐字時間戳。
-- `python tools/align.py whisper.json tools/captions.json src/subtitles.json <總長>` 字級對齊。
-- 使用者說某句太早/太晚 → 查 whisper.json 該時段逐字時間，不要猜。
+毛片通常**沒有**現成字幕，標準路徑是三步：
+
+1. **轉錄**：`python tools/transcribe.py <毛片> whisper.json "<專有名詞提示>"`
+   （initial_prompt 先跟使用者要品牌名/人名/術語，中文 ASR 最容易錯這些）。
+2. **起草＋校對**：`python tools/whisper_to_captions.py whisper.json tools/captions.json`
+   產生草稿，然後**逐句校對**成正典文字——自己先修明顯 ASR 錯誤（同音字、
+   專有名詞、贅字取捨），再把整份草稿列給使用者確認一次。校對只改文字，不動 `t`。
+3. **對齊**：`python tools/align.py whisper.json tools/captions.json src/subtitles.json <總長>`
+   ——文字用校對後的正典，時間用 whisper 逐字戳，字級 diff 合併。
+
+捷徑：使用者若提供人工字幕清單（剪映/CapCut 螢幕錄影等），抽格讀出文字＋起始秒
+直接當正典，跳過步驟 2。
+
+使用者說某句太早/太晚 → 查 whisper.json 該時段逐字時間，不要猜。
 
 ### 3. 設定 videoConfig
 所有 overlay（封面、liquid glass 標題、逐字大字、章節 chips、印章、計數、片尾 CTA）、

@@ -98,12 +98,15 @@ Assets in `public/` (all gitignored): the footage, `cover_bg.png` / `last_frame.
 ```bash
 pip install faster-whisper
 python tools/transcribe.py footage.mov whisper.json "domain terms hint"
+python tools/whisper_to_captions.py whisper.json tools/captions.json   # draft → proofread it
 python tools/align.py whisper.json tools/captions.json src/subtitles.json 90.3
 python tools/make_srt.py src/subtitles.json out/subtitles.srt 0.867
 ```
 
-`captions.json` holds the *canonical* text; whisper contributes timing only —
-merged with a character-level diff so ASR errors never reach the screen.
+Text and timing are separated: `captions.json` holds the *canonical* text — an
+ASR draft proofread line by line (or an existing human caption list, if you have
+one) — while whisper contributes word-level timing only. The two are merged with
+a character-level diff, so ASR errors never reach the screen.
 
 ### Render & audio
 
