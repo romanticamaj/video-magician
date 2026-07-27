@@ -1,7 +1,7 @@
 // Non-destructive jump-cut system. All overlay/subtitle/sfx cues use
 // SOURCE-timeline seconds — components convert via outToSrc/srcToOut,
 // so edits re-align automatically when CONFIG.cuts changes.
-import {CONFIG} from './videoConfig';
+import {CONFIG} from '../videoConfig';
 
 export const CUTS = CONFIG.cuts;
 export const SRC_DURATION = CONFIG.srcDurationSec;
@@ -10,6 +10,8 @@ export const FPS = 30;
 const cutLen = CUTS.reduce((a, [f, t]) => a + (t - f), 0);
 export const KEPT_DURATION = SRC_DURATION - cutLen;
 export const VIDEO_FRAMES = Math.round(KEPT_DURATION * FPS);
+export const TOTAL_FRAMES =
+  CONFIG.coverFrames + VIDEO_FRAMES + CONFIG.outroFrames;
 
 // kept segments in source time
 export const SEGMENTS: Array<{src: number; out: number; dur: number}> = (() => {

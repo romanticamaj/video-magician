@@ -12,7 +12,7 @@ import {
 import {ACCENT, ACCENT_DARK} from './theme';
 import {FONT, HAND_FONT} from './font';
 import {Thick} from './ThickText';
-import {CONFIG} from './videoConfig';
+import {CONFIG} from '../videoConfig';
 
 export const COVER_FRAMES = CONFIG.coverFrames;
 

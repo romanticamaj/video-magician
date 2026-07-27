@@ -11,7 +11,7 @@ import {ACCENT, ACCENT_DARK} from './theme';
 import {FONT, HAND_FONT} from './font';
 import {ArrowUpIcon, CheckIcon, ICONS, SparkleIcon} from './icons';
 import {outToSrc} from './cuts';
-import {CONFIG} from './videoConfig';
+import {CONFIG} from '../videoConfig';
 
 // ---------- helpers ----------
 

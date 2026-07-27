@@ -10,7 +10,7 @@ import {ACCENT} from './theme';
 import {HAND_FONT} from './font';
 import {Thick} from './ThickText';
 import {outToSrc} from './cuts';
-import {CONFIG} from './videoConfig';
+import {CONFIG} from '../videoConfig';
 
 // One line of dialogue rendered as huge per-character animated text,
 // timed to the spoken words.

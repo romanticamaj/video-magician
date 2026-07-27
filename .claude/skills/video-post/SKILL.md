@@ -5,8 +5,9 @@ description: 用這個 repo 的 Remotion 管線幫剪好的直式短影音上字
 
 # 短影音後製管線（本 repo）
 
-所有專案內容都集中在 `src/videoConfig.ts` 與 `src/subtitles.json`（皆 gitignored）。
-改影片 = 改 config，元件不需要動。
+架構分兩層：`src/engine/` 是渲染引擎（元件、jump-cut 時間軸系統、icon、字型），
+**永遠不需要為單支影片修改**；所有專案內容集中在 `src/videoConfig.ts` 與
+`src/subtitles.json`（皆 gitignored）。改影片 = 改 config。
 
 ## 初始化（fresh clone）
 
@@ -39,7 +40,7 @@ ffmpeg -sseof -0.1 -i 毛片.mov -frames:v 1 public/last_frame.png
 ### 3. 設定 videoConfig
 所有 overlay（封面、liquid glass 標題、逐字大字、章節 chips、印章、計數、片尾 CTA）、
 音效 cue、剪輯段落都在 `src/videoConfig.ts`。時間一律用**來源影片秒數**——
-`cuts` 改變時所有 cue 自動重新對位（見 `src/cuts.ts`）。
+`cuts` 改變時所有 cue 自動重新對位（見 `src/engine/cuts.ts`）。
 chips 的 from/to 必須對齊畫面 cut（先抽格確認）。
 
 ### 4. 音效與 BGM
@@ -57,7 +58,7 @@ mastering 到 -14 LUFS / TP ≤ -1.5 dB，`-c:v copy` 不重渲染，
 limiter ceiling 設 -2.5 dB 防 AAC overshoot——指令與迭代方法見 `references/audio-mixing.md`。
 
 ## 設計慣例
-- icon 用 `src/icons.tsx` 的 SVG（config 以字串引用），不用 emoji。
+- icon 用 `src/engine/icons.tsx` 的 SVG（config 以字串引用），不用 emoji。
 - 封面主標：乾淨白色正體字、不加粗、無複雜動畫（0.3s 展開＋徽章蓋章已內建）。
 - 手寫字型只當點綴；大字強調用黑描邊（`ThickText` outline，fatten=0）。
 - 所有 overlay 不遮臉；封面要露出表情。

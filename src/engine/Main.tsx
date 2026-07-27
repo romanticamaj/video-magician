@@ -13,9 +13,8 @@ import {Subtitles} from './Subtitles';
 import {BigBang} from './BigBang';
 import {Cover, COVER_FRAMES} from './Cover';
 import {Sfx} from './Sfx';
-import {TOTAL_FRAMES} from './Root';
-import {SEGMENTS, VIDEO_FRAMES, FPS} from './cuts';
-import {CONFIG} from './videoConfig';
+import {SEGMENTS, TOTAL_FRAMES, VIDEO_FRAMES, FPS} from './cuts';
+import {CONFIG} from '../videoConfig';
 import {
   ChapterChips,
   CountBadge,

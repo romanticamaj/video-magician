@@ -1,74 +1,123 @@
-# video-magician
+<div align="center">
 
-用 Remotion 幫剪好的直式短影音（Reels / Shorts / TikTok）上字幕、overlay 特效、音效與 BGM 的後製管線。所有專案內容集中在一個設定檔——改影片不用改元件。
+# 🎬 video-magician
 
-## 管線總覽
+**A config-driven video post-production pipeline that uses the browser as its rendering engine.**
+
+Turn a raw vertical video into a fully-produced short — subtitles, motion overlays, SFX, ducked BGM, cover frame — by editing one config file and hitting render.
+
+[![Remotion](https://img.shields.io/badge/Remotion-4.x-blue?logo=react)](https://remotion.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Powered by ffmpeg](https://img.shields.io/badge/audio-ffmpeg-007808?logo=ffmpeg)](https://ffmpeg.org)
+[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-skill%20included-D97757)](.claude/skills/video-post/SKILL.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+</div>
+
+---
+
+## Why a frontend stack for video?
+
+Every frame is a React render. Remotion drives a headless browser frame-by-frame and stitches the screenshots into a video — which means **the entire CSS/SVG/typography engine becomes your VFX toolkit**:
+
+- *Liquid glass* titles are one line of `backdrop-filter`
+- Subtitle outlines, keyword highlighting, and CJK line-breaking are just the browser's text engine
+- Springs, glassmorphism chips, and confetti are plain components
+
+And because a frame is a pure function of time (`frame → UI`), the whole timeline is **code**: deterministic, diffable, and re-renderable after every tweak.
+
+## Architecture
 
 ```
-毛片 .mov
-  ├─ faster-whisper 逐字時間戳 ──────┐
-  ├─ 字幕清單文字（正典）────────────┤→ tools/align.py 字級對齊 → src/subtitles.json
-  ├─ SFX（loudnorm 人聲 -13 dB）
-  ├─ BGM（loudnorm 人聲 -6 dB ＋ sidechain ducking 2 dB）
-  └─ Remotion 合成渲染 → ffmpeg mastering（-14 LUFS / TP -2）→ 上傳檔
+┌────────────────────────── data (per project, gitignored) ─────────────────────────┐
+│  src/videoConfig.ts     cover · titles · chips · stamp · counter · CTA · cuts     │
+│  src/subtitles.json     text + precise timing (whisper-aligned)                   │
+└──────────────────────────────────────┬────────────────────────────────────────────┘
+                                       │ pure data in
+┌──────────────────────────────────────▼────────────────────────────────────────────┐
+│  src/engine/            the rendering engine — never edited per project           │
+│  ├─ Main.tsx            composition: video segments · BGM · freeze outro · fade   │
+│  ├─ cuts.ts             non-destructive jump cuts (src ⇄ output time mapping)     │
+│  ├─ Subtitles / BigBang / Cover / overlays / Sfx                                  │
+│  └─ icons · theme · fonts · ThickText                                             │
+└──────────────────────────────────────┬────────────────────────────────────────────┘
+                                       │ headless Chrome, frame by frame
+                              Remotion render → out/final.mp4
+                                       │
+                     ffmpeg mastering (−14 LUFS, true-peak safe)
 ```
 
-## 快速開始
+**Offline pipeline** (`tools/`): `transcribe.py` (faster-whisper word timestamps) → `align.py` (character-level diff against canonical caption text) → `subtitles.json` → `make_srt.py`.
+
+## Features
+
+| | |
+|---|---|
+| 🕐 **Whisper-aligned subtitles** | Canonical caption text matched to word-level ASR timestamps via character diff — accurate to ~0.02 s |
+| ✂️ **Non-destructive jump cuts** | All cues live in *source* time; change `cuts` and every subtitle, overlay, and SFX re-aligns automatically |
+| 🧊 **Liquid-glass overlays** | Frosted titles, glassmorphism chapter chips, stamp + confetti, count-up numbers, end-card CTA |
+| 💥 **Per-character text bang** | One spoken line rendered as huge per-glyph animated type, timed to the words |
+| 🔊 **Broadcast-grade audio** | SFX normalized to voice −13 dB, BGM at voice −6 dB with 2 dB sidechain ducking, final master −14 LUFS |
+| 🖼️ **Cover frame** | First-frame cover with badge stamp-in and 0.3 s split-open title, doubles as the platform thumbnail |
+| 🤖 **Claude Code skill** | The full production workflow ships in-repo — open the project and say *"add subtitles and effects to this video"* |
+
+## Quick start
 
 ```bash
 npm install
-cp src/videoConfig.sample.ts src/videoConfig.ts
-cp src/subtitles.sample.json src/subtitles.json
+
+# create your project data from the samples
+cp src/videoConfig.sample.ts  src/videoConfig.ts
+cp src/subtitles.sample.json  src/subtitles.json
 cp tools/captions.sample.json tools/captions.json
 ```
 
-素材放 `public/`（皆不進版控）：
+Drop assets into `public/` (all gitignored):
 
-| 檔案 | 說明 |
+| Path | What |
 |---|---|
-| `public/<毛片>` | 來源影片，檔名對應 `videoConfig.videoFile` |
-| `public/cover_bg.png` | 封面底圖（毛片第 0 幀） |
-| `public/last_frame.png` | 結尾定格圖（毛片最後一幀） |
-| `public/bgm.wav` | 預混好的 BGM（見下方混音） |
-| `public/sfx/*.wav` | 音效 one-shots |
-| `public/fonts/ChenYuluoyan-2.0-Thin.ttf` | 手寫字型（[下載](https://github.com/Chenyu-otf/chenyuluoyan_thin)） |
+| `public/<videoFile>` | source footage (matches `videoConfig.videoFile`) |
+| `public/cover_bg.png` | cover background — frame 0 of the footage |
+| `public/last_frame.png` | freeze-outro image — last frame of the footage |
+| `public/bgm.wav` | pre-mixed background music |
+| `public/sfx/*.wav` | one-shot sound effects |
+| `public/fonts/ChenYuluoyan-2.0-Thin.ttf` | handwriting display font ([download](https://github.com/Chenyu-otf/chenyuluoyan_thin)) |
 
 ```bash
-npm run dev      # Remotion Studio 預覽
-npm run render   # 渲染 out/final.mp4
+ffmpeg -i footage.mov -frames:v 1 public/cover_bg.png
+ffmpeg -sseof -0.1 -i footage.mov -frames:v 1 public/last_frame.png
+
+npm run dev      # Remotion Studio — live preview
+npm run render   # → out/final.mp4
 ```
 
-## 設定驅動
-
-`src/videoConfig.ts` 定義整支影片：封面、標題、逐字大字、章節 chips、印章、計數動畫、片尾 CTA、音效 cue、剪輯段落。所有時間都用**來源影片秒數**——`cuts` 改變時，字幕、overlay、音效全部自動重新對位（非破壞性 jump-cut，見 `src/cuts.ts`）。
-
-## 元件（`src/`）
-
-- `Subtitles.tsx` — 字幕：關鍵字上色、彈入動畫、多講者配色
-- `BigBang.tsx` — 一句台詞逐字誇張進場的大字（對齊語音逐字時間）
-- `overlays.tsx` — Liquid Glass 標題、玻璃擬態章節 chips、印章＋彩帶、數字滾動、片尾 CTA、進度條
-- `Cover.tsx` — 封面（0.3s 左右展開＋徽章蓋章動畫）
-- `Sfx.tsx` — 設定驅動的音效 cue 表
-- `icons.tsx` — 手繪 SVG icon 集（config 以字串引用）
-
-## 字幕製作
+## Subtitle pipeline
 
 ```bash
 pip install faster-whisper
-python tools/transcribe.py 毛片.mov whisper.json "專有名詞提示"
+
+python tools/transcribe.py footage.mov whisper.json "domain terms hint"
 python tools/align.py whisper.json tools/captions.json src/subtitles.json 90.3
-python tools/make_srt.py src/subtitles.json out/subtitles.srt 0.867   # 位移=封面秒數
+python tools/make_srt.py src/subtitles.json out/subtitles.srt 0.867   # offset = cover length
 ```
 
-`captions.json` 的文字是正典（來自人工字幕清單），whisper 只負責精確時間——兩者以字元級 diff 對齊。
+`captions.json` holds the *canonical* text (from your manually-edited caption list); whisper contributes only the timing. The two are merged with a character-level `SequenceMatcher`, so ASR transcription errors never leak into the final subtitles.
 
-## 音訊
+## Audio recipes
 
-混音配比、sidechain ducking、-14 LUFS mastering 的完整 ffmpeg 指令見
-[`.claude/skills/video-post/references/audio-mixing.md`](.claude/skills/video-post/references/audio-mixing.md)。
+Mixing ratios, sidechain-compression parameters, and the −14 LUFS mastering chain (including the AAC true-peak overshoot pitfall) are documented in
+[`.claude/skills/video-post/references/audio-mixing.md`](.claude/skills/video-post/references/audio-mixing.md).
 
-## Claude Code Skill
+## License
 
-repo 內建 project-level skill（`.claude/skills/video-post/`）：用 Claude Code 開啟本專案後，直接說「幫這支影片上字幕上特效」即可按完整流程執行。
+[MIT](LICENSE)
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+---
+
+<div align="center">
+
+🤖 Built with [Claude Code](https://claude.com/claude-code) · Rendered with [Remotion](https://remotion.dev)
+
+*Note: Remotion itself has a [special license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) — free for individuals and small teams, paid for larger companies.*
+
+</div>

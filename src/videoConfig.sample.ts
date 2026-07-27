@@ -1,7 +1,7 @@
 // Sample per-project configuration.
 // Copy to src/videoConfig.ts and fill in your own values:
 //   cp src/videoConfig.sample.ts src/videoConfig.ts
-import type {VideoConfig} from './configTypes';
+import type {VideoConfig} from './engine/configTypes';
 
 export const CONFIG: VideoConfig = {
   // source footage placed at public/<videoFile>

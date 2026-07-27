@@ -1,7 +1,7 @@
 import React from 'react';
 import {Audio, Sequence, interpolate, staticFile} from 'remotion';
 import {srcToOut} from './cuts';
-import {CONFIG} from './videoConfig';
+import {CONFIG} from '../videoConfig';
 
 // SFX are pre-normalized well below the voice level (see tools/ mixing docs).
 // Cue times are in SOURCE-video seconds; converted through the cut map.

@@ -1,10 +1,10 @@
 import React from 'react';
 import {AbsoluteFill, spring, useCurrentFrame, useVideoConfig} from 'remotion';
-import subs from './subtitles.json';
+import subs from '../subtitles.json';
 import {ACCENT, INK} from './theme';
 import {FONT} from './font';
 import {outToSrc} from './cuts';
-import {CONFIG} from './videoConfig';
+import {CONFIG} from '../videoConfig';
 
 type Sub = {
   text: string;

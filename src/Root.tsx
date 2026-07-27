@@ -1,12 +1,7 @@
 import React from 'react';
 import {Composition} from 'remotion';
-import {Main} from './Main';
-import {CONFIG} from './videoConfig';
-import {VIDEO_FRAMES} from './cuts';
-
-export const FPS = 30;
-export const TOTAL_FRAMES =
-  CONFIG.coverFrames + VIDEO_FRAMES + CONFIG.outroFrames;
+import {Main} from './engine/Main';
+import {TOTAL_FRAMES} from './engine/cuts';
 
 export const Root: React.FC = () => {
   return (
@@ -14,7 +9,7 @@ export const Root: React.FC = () => {
       id="Main"
       component={Main}
       durationInFrames={TOTAL_FRAMES}
-      fps={FPS}
+      fps={30}
       width={1080}
       height={1920}
     />
