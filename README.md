@@ -2,29 +2,44 @@
 
 # 🎬 video-magician
 
-**A config-driven video post-production pipeline that uses the browser as its rendering engine.**
+**An agent-driven video post-production pipeline that uses the browser as its rendering engine.**
 
-Turn a raw vertical video into a fully-produced short — subtitles, motion overlays, SFX, ducked BGM, cover frame — by editing one config file and hitting render.
+Drop in raw footage, say *"add subtitles and effects to this video"* — the bundled Claude Code skill runs the whole pipeline: transcription, subtitle alignment, motion overlays, SFX, ducked BGM, cover frame, loudness mastering.
 
+[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-skill%20driven-D97757)](.claude/skills/video-magician/SKILL.md)
 [![Remotion](https://img.shields.io/badge/Remotion-4.x-blue?logo=react)](https://remotion.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Powered by ffmpeg](https://img.shields.io/badge/audio-ffmpeg-007808?logo=ffmpeg)](https://ffmpeg.org)
-[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-skill%20included-D97757)](.claude/skills/video-post/SKILL.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
 ---
 
+## Usage
+
+This repo is operated by an agent, not by hand:
+
+```bash
+git clone https://github.com/romanticamaj/video-magician && cd video-magician
+claude   # open in Claude Code
+```
+
+> 幫這支影片上字幕、上特效：`C:\path\to\footage.mov`
+
+That's it. The in-repo skill ([`.claude/skills/video-magician`](.claude/skills/video-magician/SKILL.md)) takes over: it probes the footage, transcribes and aligns subtitles, fills in the video config, sources and normalizes audio, renders, verifies frames against the result, and masters the output — iterating with you in plain language ("字太小" / "這段剪掉" / "BGM 小聲一點").
+
+The skill also **self-learns**: corrections you make are distilled into reusable rules ([`references/learnings.md`](.claude/skills/video-magician/references/learnings.md)) that shape the next video.
+
 ## Why a frontend stack for video?
 
-Every frame is a React render. Remotion drives a headless browser frame-by-frame and stitches the screenshots into a video — which means **the entire CSS/SVG/typography engine becomes your VFX toolkit**:
+Every frame is a React render. Remotion drives a headless browser frame-by-frame and stitches the screenshots into a video — which means **the entire CSS/SVG/typography engine becomes the VFX toolkit**:
 
 - *Liquid glass* titles are one line of `backdrop-filter`
 - Subtitle outlines, keyword highlighting, and CJK line-breaking are just the browser's text engine
 - Springs, glassmorphism chips, and confetti are plain components
 
-And because a frame is a pure function of time (`frame → UI`), the whole timeline is **code**: deterministic, diffable, and re-renderable after every tweak.
+And because a frame is a pure function of time (`frame → UI`), the whole timeline is **code**: deterministic, diffable, and re-renderable — which is exactly what lets an agent iterate on a video the way it iterates on software.
 
 ## Architecture
 
@@ -47,7 +62,7 @@ And because a frame is a pure function of time (`frame → UI`), the whole timel
                      ffmpeg mastering (−14 LUFS, true-peak safe)
 ```
 
-**Offline pipeline** (`tools/`): `transcribe.py` (faster-whisper word timestamps) → `align.py` (character-level diff against canonical caption text) → `subtitles.json` → `make_srt.py`.
+Design rationale lives in [`docs/adr/`](docs/adr/README.md).
 
 ## Features
 
@@ -59,54 +74,49 @@ And because a frame is a pure function of time (`frame → UI`), the whole timel
 | 💥 **Per-character text bang** | One spoken line rendered as huge per-glyph animated type, timed to the words |
 | 🔊 **Broadcast-grade audio** | SFX normalized to voice −13 dB, BGM at voice −6 dB with 2 dB sidechain ducking, final master −14 LUFS |
 | 🖼️ **Cover frame** | First-frame cover with badge stamp-in and 0.3 s split-open title, doubles as the platform thumbnail |
-| 🤖 **Claude Code skill** | The full production workflow ships in-repo — open the project and say *"add subtitles and effects to this video"* |
+| 🧠 **Self-learning skill** | User corrections become reusable rules that persist across videos |
 
-## Quick start
+## Under the hood
+
+<details>
+<summary><b>What the skill actually runs</b> (manual reference — you normally never type these)</summary>
+
+### Project data
 
 ```bash
-npm install
-
-# create your project data from the samples
-cp src/videoConfig.sample.ts  src/videoConfig.ts
+cp src/videoConfig.sample.ts  src/videoConfig.ts     # everything project-specific
 cp src/subtitles.sample.json  src/subtitles.json
 cp tools/captions.sample.json tools/captions.json
 ```
 
-Drop assets into `public/` (all gitignored):
+Assets in `public/` (all gitignored): the footage, `cover_bg.png` / `last_frame.png`
+(first/last frame extracts), pre-mixed `bgm.wav`, `sfx/*.wav`, and the
+[handwriting font](https://github.com/Chenyu-otf/chenyuluoyan_thin) under `fonts/`.
 
-| Path | What |
-|---|---|
-| `public/<videoFile>` | source footage (matches `videoConfig.videoFile`) |
-| `public/cover_bg.png` | cover background — frame 0 of the footage |
-| `public/last_frame.png` | freeze-outro image — last frame of the footage |
-| `public/bgm.wav` | pre-mixed background music |
-| `public/sfx/*.wav` | one-shot sound effects |
-| `public/fonts/ChenYuluoyan-2.0-Thin.ttf` | handwriting display font ([download](https://github.com/Chenyu-otf/chenyuluoyan_thin)) |
+### Subtitle pipeline
 
 ```bash
-ffmpeg -i footage.mov -frames:v 1 public/cover_bg.png
-ffmpeg -sseof -0.1 -i footage.mov -frames:v 1 public/last_frame.png
+pip install faster-whisper
+python tools/transcribe.py footage.mov whisper.json "domain terms hint"
+python tools/align.py whisper.json tools/captions.json src/subtitles.json 90.3
+python tools/make_srt.py src/subtitles.json out/subtitles.srt 0.867
+```
 
+`captions.json` holds the *canonical* text; whisper contributes timing only —
+merged with a character-level diff so ASR errors never reach the screen.
+
+### Render & audio
+
+```bash
 npm run dev      # Remotion Studio — live preview
 npm run render   # → out/final.mp4
 ```
 
-## Subtitle pipeline
+Mixing ratios, sidechain ducking, and the −14 LUFS mastering chain (including the
+AAC true-peak overshoot pitfall) are documented in
+[`references/audio-mixing.md`](.claude/skills/video-magician/references/audio-mixing.md).
 
-```bash
-pip install faster-whisper
-
-python tools/transcribe.py footage.mov whisper.json "domain terms hint"
-python tools/align.py whisper.json tools/captions.json src/subtitles.json 90.3
-python tools/make_srt.py src/subtitles.json out/subtitles.srt 0.867   # offset = cover length
-```
-
-`captions.json` holds the *canonical* text (from your manually-edited caption list); whisper contributes only the timing. The two are merged with a character-level `SequenceMatcher`, so ASR transcription errors never leak into the final subtitles.
-
-## Audio recipes
-
-Mixing ratios, sidechain-compression parameters, and the −14 LUFS mastering chain (including the AAC true-peak overshoot pitfall) are documented in
-[`.claude/skills/video-post/references/audio-mixing.md`](.claude/skills/video-post/references/audio-mixing.md).
+</details>
 
 ## License
 

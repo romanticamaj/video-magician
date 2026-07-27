@@ -1,5 +1,5 @@
 ---
-name: video-post
+name: video-magician
 description: 用這個 repo 的 Remotion 管線幫剪好的直式短影音上字幕、overlay 特效、音效與 BGM。當使用者要求「上字幕」「上特效」「配樂/混音」「做封面」「剪掉某段」時使用。
 ---
 
