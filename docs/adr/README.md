@@ -8,3 +8,4 @@
 | [0004](0004-source-time-cues-nondestructive-cuts.md) | Keep all cues in source time; jump cuts as a mapping | Accepted |
 | [0005](0005-offline-audio-mixing.md) | Mix audio offline with ffmpeg, master after render | Accepted |
 | [0006](0006-svg-icons-over-emoji.md) | SVG icon components instead of emoji | Accepted |
+| [0007](0007-footage-indexing-layer.md) | Index-then-decide layer for multi-clip autonomous editing | Proposed |

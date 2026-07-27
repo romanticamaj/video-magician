@@ -57,6 +57,21 @@ chips 的 from/to 必須對齊畫面 cut（先抽格確認）。
 mastering 到 -14 LUFS / TP ≤ -1.5 dB，`-c:v copy` 不重渲染，
 limiter ceiling 設 -2.5 dB 防 AAC overshoot——指令與迭代方法見 `references/audio-mixing.md`。
 
+## Self-learning（必做）
+
+這個 skill 會隨使用自我進化，機制有三步：
+
+1. **啟動時**：先讀 `references/learnings.md`，把累積的規則當作與 SKILL.md 同級的指示。
+2. **過程中**：每當使用者**修正**一個產出（「這裡太黑」「這個 chip 太早出現」「音量再小一點」）
+   或表達可重用的**偏好**，在完成該修正後，把它蒸餾成一條通用規則
+   append 進 `references/learnings.md`（格式見該檔案）。判斷標準：
+   「下一支不同的影片還會用到嗎？」會 → 記；只是這支影片的個別調整 → 不記。
+3. **收尾時**：交付前回顧本次對話，檢查是否有漏記的學習；若某條學習已經穩定
+   （被引用多次、不再被推翻），把它升級進 SKILL.md 的「設計慣例」正文並從 learnings 移除。
+
+⚠️ learnings.md 跟著 repo 走（公開）：只記通用規則，不記專案文案、
+個人資訊或具體影片內容。
+
 ## 設計慣例
 - icon 用 `src/engine/icons.tsx` 的 SVG（config 以字串引用），不用 emoji。
 - 封面主標：乾淨白色正體字、不加粗、無複雜動畫（0.3s 展開＋徽章蓋章已內建）。
