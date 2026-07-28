@@ -89,9 +89,12 @@ cp src/subtitles.sample.json  src/subtitles.json
 cp tools/captions.sample.json tools/captions.json
 ```
 
+System prerequisites: Node 18+, Python 3.10+, and `ffmpeg`/`ffprobe` on PATH.
+
 Assets in `public/` (all gitignored): the footage, `cover_bg.png` / `last_frame.png`
 (first/last frame extracts), pre-mixed `bgm.wav`, `sfx/*.wav`, and the
-[handwriting font](https://github.com/Chenyu-otf/chenyuluoyan_thin) under `fonts/`.
+[handwriting font](https://github.com/Chenyu-otf/chenyuluoyan_thin) — **required**
+at exactly `public/fonts/ChenYuluoyan-2.0-Thin.ttf`; renders stall without it.
 
 ### Subtitle pipeline
 

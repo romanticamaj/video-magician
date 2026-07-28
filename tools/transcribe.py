@@ -2,11 +2,14 @@
 """faster-whisper 轉錄，含逐字時間戳。
 用法: python transcribe.py <影片或音檔> <輸出.json> [initial_prompt]
 """
-import json, sys
+import io, json, os, sys
 from faster_whisper import WhisperModel
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 src, out = sys.argv[1], sys.argv[2]
 prompt = sys.argv[3] if len(sys.argv) > 3 else "繁體中文。"
+os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
 
 model = WhisperModel("small", device="cpu", compute_type="int8")
 segments, info = model.transcribe(

@@ -13,10 +13,12 @@ description: 用這個 repo 的 Remotion 管線幫剪好的直式短影音上字
 
 ```bash
 npm install
+mkdir -p local
 cp src/videoConfig.sample.ts src/videoConfig.ts
 cp src/subtitles.sample.json src/subtitles.json
 cp tools/captions.sample.json tools/captions.json
-# 素材放 public/：毛片、bgm.wav、sfx/*.wav、fonts/、cover_bg.png、last_frame.png
+# 素材放 public/：毛片、bgm.wav、sfx/*.wav、cover_bg.png、last_frame.png
+# ⚠️ 字型是硬依賴：public/fonts/ChenYuluoyan-2.0-Thin.ttf 不存在會卡渲染
 ```
 
 `public/cover_bg.png` = 毛片第 0 幀；`public/last_frame.png` = **最後一個保留段的結尾幀**

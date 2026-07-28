@@ -22,17 +22,28 @@ for seg in segs:
     if not words:
         captions.append({"t": int(seg["start"]), "text": seg["text"].strip()})
         continue
-    # split long segments into subtitle-sized lines on word boundaries
+    # split long segments into subtitle-sized lines on word boundaries;
+    # never break inside a whisper word cluster
+    seg_lines = []
     line, line_start = "", None
     for w in words:
         if line_start is None:
             line_start = w["s"]
         line += w["w"]
         if len(line.replace(" ", "")) >= MAX_CHARS:
-            captions.append({"t": int(line_start), "text": line.strip()})
+            seg_lines.append({"t": int(line_start), "text": line.strip()})
             line, line_start = "", None
     if line.strip():
-        captions.append({"t": int(line_start), "text": line.strip()})
+        seg_lines.append({"t": int(line_start), "text": line.strip()})
+    # merge short trailing fragments (< 3 chars) into the previous line so
+    # 1-char orphans don't become throwaway captions
+    merged = []
+    for c in seg_lines:
+        if merged and len(c["text"].replace(" ", "")) < 3:
+            merged[-1]["text"] += c["text"]
+        else:
+            merged.append(c)
+    captions.extend(merged)
 
 json.dump(captions, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 for c in captions:
