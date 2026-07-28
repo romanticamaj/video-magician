@@ -15,6 +15,14 @@ export const CONFIG: VideoConfig = {
   // All subtitle/overlay/sfx cues stay in source time and re-align automatically.
   cuts: [],
 
+  // digital camera moves on the footage (optional; use sparingly — 2-4 per video
+  // at story beats). Vocabulary + intensity ranges: motion-library.md.
+  // A whip spanning a cut hides the splice: from = cutFrom-0.2, to = cutTo+0.2.
+  cameraMoves: [
+    // {type: 'punchIn', from: 30, to: 33, intensity: 0.12},
+    // {type: 'whipRight', from: 41.3, to: 46.2, intensity: 1},
+  ],
+
   // words highlighted in the accent color inside subtitles
   keywords: ['AI', '關鍵字'],
 

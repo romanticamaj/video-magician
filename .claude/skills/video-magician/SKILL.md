@@ -57,6 +57,11 @@ ffmpeg -ss <最後保留段結尾秒-0.05> -i 毛片.mov -frames:v 1 public/last
 `cuts` 改變時所有 cue 自動重新對位（見 `src/engine/cuts.ts`）。
 chips 的 from/to 必須對齊畫面 cut（先抽格確認）。
 
+**運鏡與物件動畫**：`cameraMoves` 可加數位運鏡（punch-in、慢 zoom、whip-pan
+蓋剪點、手持感…），overlay 動畫參數（blur 進場、overshoot、stagger）照
+`references/motion-library.md` 的語彙與數值選用——挑 2–4 個放在故事節拍上，
+不要鋪滿。
+
 ### 4. 音效與 BGM
 - SFX：一律 loudnorm 到人聲 -13 dB 左右再放進 `public/sfx/`。
 - BGM 預先混好（loudnorm 人聲 -6 dB ＋ sidechain ducking 壓 2 dB）再放 `public/bgm.wav`，

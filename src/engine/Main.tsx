@@ -11,6 +11,7 @@ import {
 } from 'remotion';
 import {Subtitles} from './Subtitles';
 import {BigBang} from './BigBang';
+import {CameraRig} from './CameraRig';
 import {Cover, COVER_FRAMES} from './Cover';
 import {Sfx} from './Sfx';
 import {SEGMENTS, TOTAL_FRAMES, VIDEO_FRAMES, FPS} from './cuts';
@@ -89,15 +90,17 @@ export const Main: React.FC = () => {
 
       {/* main content, shifted after the cover */}
       <Sequence from={COVER_FRAMES}>
-        {/* source video played as kept segments (jump cuts) */}
-        {SEGMENTS.map((s, i) => (
-          <Sequence key={i} from={s.outFrame} durationInFrames={s.durFrames}>
-            <OffthreadVideo
-              src={staticFile(CONFIG.videoFile)}
-              trimBefore={Math.round(s.src * FPS)}
-            />
-          </Sequence>
-        ))}
+        {/* source video played as kept segments (jump cuts), under the camera rig */}
+        <CameraRig>
+          {SEGMENTS.map((s, i) => (
+            <Sequence key={i} from={s.outFrame} durationInFrames={s.durFrames}>
+              <OffthreadVideo
+                src={staticFile(CONFIG.videoFile)}
+                trimBefore={Math.round(s.src * FPS)}
+              />
+            </Sequence>
+          ))}
+        </CameraRig>
         <FreezeStill />
         <Polish />
         <Subtitles />

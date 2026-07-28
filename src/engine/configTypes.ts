@@ -1,5 +1,21 @@
 import type {IconName} from './icons';
 
+export type CameraMove = {
+  type:
+    | 'punchIn'
+    | 'crashZoom'
+    | 'zoomIn'
+    | 'zoomOut'
+    | 'panLeft'
+    | 'panRight'
+    | 'handheld'
+    | 'whipLeft'
+    | 'whipRight';
+  from: number; // source-timeline seconds
+  to: number;
+  intensity?: number; // see references/motion-library.md for ranges
+};
+
 export type SfxCue = {
   file: string;
   at: number; // source-timeline seconds
@@ -16,6 +32,7 @@ export type VideoConfig = {
   outroFrames: number;
   outroFadeFrames: number;
   cuts: Array<[number, number]>;
+  cameraMoves?: CameraMove[];
   keywords: string[];
   speakers: Record<string, {color: string; tag?: string}>;
   cover: {badge: string; titleLines: string[]} | null;
