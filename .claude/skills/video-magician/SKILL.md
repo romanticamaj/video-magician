@@ -67,7 +67,13 @@ chips 的 from/to 必須對齊畫面 cut（先抽格確認）。
 - `npx remotion render Main out/final.mp4 --concurrency 8`（背景跑）。
 - 成品抽格驗證每個 overlay 出現/消失的邊界時刻。
 
-### 6. 成品響度
+### 6. 校驗迴圈（閘門，必經）
+整支渲染後**不要直接交付**：`node tools/make_review.mjs --video out/final.mp4 --revision N`
+產出 `out/review.html` 給使用者逐項審核（每個 overlay/字幕/剪點/音效一個 item，
+可改欄位值＋寫備註）。收到 `review.feedback.json` 後逐項套用、重渲染、出下一版。
+**還有 changes_requested 就不能進 mastering。** 細節見 `references/review-loop.md`。
+
+### 7. 成品響度
 mastering 到 -14 LUFS / TP ≤ -1.5 dB，`-c:v copy` 不重渲染，
 limiter ceiling 設 -2.5 dB 防 AAC overshoot——指令與迭代方法見 `references/audio-mixing.md`。
 

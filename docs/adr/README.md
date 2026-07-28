@@ -9,3 +9,4 @@
 | [0005](0005-offline-audio-mixing.md) | Mix audio offline with ffmpeg, master after render | Accepted |
 | [0006](0006-svg-icons-over-emoji.md) | SVG icon components instead of emoji | Accepted |
 | [0007](0007-footage-indexing-layer.md) | Index-then-decide layer for multi-clip autonomous editing | Proposed |
+| [0008](0008-hitl-review-loop.md) | Gated human review via a flattened item manifest | Accepted |
