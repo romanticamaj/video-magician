@@ -7,8 +7,12 @@
 ```
 渲染 out/final.mp4
   → node tools/make_review.mjs --video out/final.mp4 --revision N
-  → 交付 out/review.html 給使用者（單一自足檔案，含縮圖與播放器）
+  → 交付 out/review.html 給使用者（單一自足檔案；OpenCut 式 UI：
+     五軌時間軸 lanes＋playhead、點方塊=選取+seek、密度條顯示審核進度、
+     鍵盤流 ↑↓ 換項 / a 通過 / r 要改 / x 移除 / space 播放）
   → 使用者逐項審：✅ 通過 / ✏️ 要改（可直接改欄位＋寫自由備註）/ 🗑️ 移除
+  → ⚠️ 影片內嵌播放需 review.html 與影片檔同資料夾且經 file:// 或支援
+     Range 的 host 開啟；沒有影片時退化為縮圖模式，功能不減
   → 匯出 review.feedback.json 丟回來
   → agent 套用 → 重渲染 → make_review --revision N+1
   → 迴圈直到沒有 changes_requested → 才進 mastering 與交付
