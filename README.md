@@ -29,6 +29,12 @@ claude   # open in Claude Code
 
 That's it. The in-repo skill ([`.claude/skills/video-magician`](.claude/skills/video-magician/SKILL.md)) takes over: it probes the footage, transcribes and aligns subtitles, fills in the video config, sources and normalizes audio, renders, verifies frames against the result, and masters the output — iterating with you in plain language ("字太小" / "這段剪掉" / "BGM 小聲一點").
 
+Starting from a **pile of raw clips** instead of one edited master? Say
+"這堆毛片幫我剪成一支" — the [`rough-cut`](.claude/skills/rough-cut/SKILL.md)
+skill transcribes every clip into an interactive stringout page (toggle
+sentences to delete, fix transcripts inline), assembles the kept spans into a
+master, and hands off to the pipeline above.
+
 The skill also **self-learns**: corrections you make are distilled into reusable rules ([`references/learnings.md`](.claude/skills/video-magician/references/learnings.md)) that shape the next video.
 
 ## Why a frontend stack for video?

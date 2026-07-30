@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted — implemented by [ADR-0010](0010-rough-cut-stringout.md) (rough-cut skill)
 
 ## Context
 

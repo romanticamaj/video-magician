@@ -220,7 +220,7 @@ const vid=document.getElementById('vid');
 function seekTo(t){if(!vid)return;const tt=Math.min(Math.max(0,t),T-0.05);
   if(vid.readyState===0){vid.load();vid.addEventListener('loadedmetadata',()=>{vid.currentTime=tt},{once:true});}
   else vid.currentTime=tt;}
-const fmt=t=>{const m=Math.floor(t/60),s=t%60;return m+':'+(s<10?'0':'')+s.toFixed(1)};
+const fmt=t=>{const m=Math.floor(t/60),s=Math.round((t%60)*10)/10;return s>=60?(m+1)+':00.0':m+':'+(s<10?'0':'')+s.toFixed(1)};
 
 // ---- timeline ----
 const lanesEl=document.getElementById('lanes');

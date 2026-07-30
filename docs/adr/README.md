@@ -8,6 +8,7 @@
 | [0004](0004-source-time-cues-nondestructive-cuts.md) | Keep all cues in source time; jump cuts as a mapping | Accepted |
 | [0005](0005-offline-audio-mixing.md) | Mix audio offline with ffmpeg, master after render | Accepted |
 | [0006](0006-svg-icons-over-emoji.md) | SVG icon components instead of emoji | Accepted |
-| [0007](0007-footage-indexing-layer.md) | Index-then-decide layer for multi-clip autonomous editing | Proposed |
+| [0007](0007-footage-indexing-layer.md) | Index-then-decide layer for multi-clip autonomous editing | Accepted |
 | [0008](0008-hitl-review-loop.md) | Gated human review via a flattened item manifest | Accepted |
 | [0009](0009-motion-vocabulary.md) | Curated motion vocabulary with config-driven camera moves | Accepted |
+| [0010](0010-rough-cut-stringout.md) | rough-cut: transcript stringout as the multi-clip entry point | Accepted |
