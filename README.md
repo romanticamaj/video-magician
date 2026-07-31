@@ -4,7 +4,7 @@
 
 **An agent-driven video post-production pipeline that uses the browser as its rendering engine.**
 
-Drop in raw footage, say *"add subtitles and effects to this video"* — the bundled Claude Code skill runs the whole pipeline: transcription, subtitle alignment, motion overlays, SFX, ducked BGM, cover frame, loudness mastering.
+Drop in raw footage, say *"add subtitles and effects to this video"* or *"jump-cut the highlights"* — the bundled Claude Code skill runs the whole pipeline: transcription, subtitle alignment, jump cuts with crossfaded audio, motion overlays, SFX, ducked BGM, cover frame, loudness mastering. Vertical or landscape; overlays optional, down to a pure cut with no text at all.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-skill%20driven-D97757)](.claude/skills/video-magician/SKILL.md)
 [![Remotion](https://img.shields.io/badge/Remotion-4.x-blue?logo=react)](https://remotion.dev)
@@ -35,7 +35,10 @@ skill transcribes every clip into an interactive stringout page (toggle
 sentences to delete, fix transcripts inline), assembles the kept spans into a
 master, and hands off to the pipeline above.
 
-The skill also **self-learns**: corrections you make are distilled into reusable rules ([`references/learnings.md`](.claude/skills/video-magician/references/learnings.md)) that shape the next video.
+The skill also **self-learns**. Corrections you make are distilled into rules that shape the next video, sorted by kind: craft invariants that break the cut when violated go to
+[`references/editing-principles.md`](.claude/skills/video-magician/references/editing-principles.md)
+(read before every job), while softer preferences accumulate in
+[`references/learnings.md`](.claude/skills/video-magician/references/learnings.md).
 
 ## Why a frontend stack for video?
 
@@ -57,13 +60,13 @@ And because a frame is a pure function of time (`frame → UI`), the whole timel
                                        │ pure data in
 ┌──────────────────────────────────────▼────────────────────────────────────────────┐
 │  src/engine/            the rendering engine — never edited per project           │
-│  ├─ Main.tsx            composition: video segments · BGM · freeze outro · fade   │
+│  ├─ Main.tsx            segments · crossfaded audio layer · dips · BGM · outro    │
 │  ├─ cuts.ts             non-destructive jump cuts (src ⇄ output time mapping)     │
-│  ├─ Subtitles / BigBang / Cover / overlays / Sfx                                  │
+│  ├─ Subtitles / BigBang / Cover / overlays / Sfx / CameraRig                      │
 │  └─ icons · theme · fonts · ThickText                                             │
 └──────────────────────────────────────┬────────────────────────────────────────────┘
                                        │ headless Chrome, frame by frame
-                              Remotion render → out/final.mp4
+                            Remotion render → out/<project>_revN.mp4
                                        │
                      ffmpeg mastering (−14 LUFS, true-peak safe)
 ```
@@ -76,6 +79,8 @@ Design rationale lives in [`docs/adr/`](docs/adr/README.md).
 |---|---|
 | 🕐 **Whisper-aligned subtitles** | Canonical caption text matched to word-level ASR timestamps via character diff — accurate to ~0.02 s |
 | ✂️ **Non-destructive jump cuts** | All cues live in *source* time; change `cuts` and every subtitle, overlay, and SFX re-aligns automatically |
+| 🔀 **Pop-free splices** | Every cut gets an equal-power audio crossfade on its own layer — clips *overlap* through the splice while the picture still hard-cuts. Opt into `fades` for dip-to-black on act changes |
+| 🖥️ **Vertical or landscape** | `composition` sets the frame size; landscape footage whose UI text hugs the edges never gets cropped into 9:16 |
 | 🧊 **Liquid-glass overlays** | Frosted titles, glassmorphism chapter chips, stamp + confetti, count-up numbers, end-card CTA |
 | 💥 **Per-character text bang** | One spoken line rendered as huge per-glyph animated type, timed to the words |
 | 🔊 **Broadcast-grade audio** | SFX normalized to voice −13 dB, BGM at voice −6 dB with 2 dB sidechain ducking, final master −14 LUFS |
@@ -98,7 +103,8 @@ cp tools/captions.sample.json tools/captions.json
 System prerequisites: Node 18+, Python 3.10+, and `ffmpeg`/`ffprobe` on PATH.
 
 Assets in `public/` (all gitignored): the footage, `cover_bg.png` / `last_frame.png`
-(first/last frame extracts), pre-mixed `bgm.wav`, `sfx/*.wav`, and the
+(first/last frame extracts — only needed when a cover or freeze outro is
+configured), pre-mixed `bgm.wav`, `sfx/*.wav`, and the
 [handwriting font](https://github.com/Chenyu-otf/chenyuluoyan_thin) — **required**
 at exactly `public/fonts/ChenYuluoyan-2.0-Thin.ttf`; renders stall without it.
 
@@ -122,11 +128,15 @@ a character-level diff, so ASR errors never reach the screen.
 ```bash
 npm run dev      # Remotion Studio — live preview
 npm run render   # → out/final.mp4
+npx remotion render Main out/clip.mp4 --frames=405-618   # one section, for a fast A/B
 ```
 
 Mixing ratios, sidechain ducking, and the −14 LUFS mastering chain (including the
 AAC true-peak overshoot pitfall) are documented in
 [`references/audio-mixing.md`](.claude/skills/video-magician/references/audio-mixing.md).
+Why splices need an overlapping crossfade rather than a fade to silence — and how
+to prove one worked, with a control group — is
+[`references/editing-principles.md`](.claude/skills/video-magician/references/editing-principles.md) §1.
 
 </details>
 

@@ -7,6 +7,12 @@ export const CONFIG: VideoConfig = {
   // source footage placed at public/<videoFile>
   videoFile: 'input.mov',
   srcDurationSec: 60,
+  // output frame size — omit for the vertical 1080x1920 default. Landscape
+  // footage whose on-screen text lives near the edges should stay landscape.
+  // composition: {width: 1920, height: 1080},
+  // footage speed-up (1 = untouched, 1.2 = 20% faster). Cue times below stay
+  // in SOURCE seconds; only the output timeline shrinks. Pitch is preserved.
+  speed: 1,
   coverFrames: 26, // cover length (frames @30fps); whole timeline shifts by this
   outroFrames: 54, // freeze + blur outro after the footage ends
   outroFadeFrames: 24, // final fade-to-black (video + audio)
@@ -14,6 +20,22 @@ export const CONFIG: VideoConfig = {
   // jump cuts in SOURCE-timeline seconds — cut at sentence boundaries.
   // All subtitle/overlay/sfx cues stay in source time and re-align automatically.
   cuts: [],
+
+  // splices that dip to black instead of hard-cutting. `at` is a source second
+  // on the join (either end of the matching cut). Reserve these for act/scene
+  // changes — a hard jump cut is the default, and fading every splice is mush.
+  fades: [
+    // {at: 14.2, durationSec: 0.8, holdSec: 0.12},
+  ],
+
+  // equal-power crossfade across every splice — ON by default (15). Leave it
+  // alone unless the footage has no continuous audio to protect. Shorten it
+  // only when a kept segment is too short to hold the overlap; 0 opts out.
+  // audioCrossfadeFrames: 15,
+
+  // vignette + bottom scrim + progress bar; set false for a pure cut with no
+  // overlays, where they read as an unasked-for effect
+  polish: true,
 
   // digital camera moves on the footage (optional; use sparingly — 2-4 per video
   // at story beats). Vocabulary + intensity ranges: motion-library.md.
@@ -76,6 +98,12 @@ export const CONFIG: VideoConfig = {
     ],
   },
 
-  // background music at public/<file> — pre-mixed via tools (loudnorm + sidechain)
-  bgm: {file: 'bgm.wav', fadeInFrames: 12},
+  // background music at public/<file> — pre-mixed via tools (loudnorm + sidechain).
+  // ducks: sections where the footage has its own music/SFX (game capture, playing
+  // back a render) — SOURCE seconds, so they follow the cuts like any other cue.
+  bgm: {
+    file: 'bgm.wav',
+    fadeInFrames: 12,
+    // ducks: [{from: 47.85, to: 83.3, gainDb: -12}],
+  },
 };

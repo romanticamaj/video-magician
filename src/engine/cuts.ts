@@ -6,6 +6,16 @@ import {CONFIG} from '../videoConfig';
 export const FPS = 30;
 export const SRC_DURATION = CONFIG.srcDurationSec;
 
+// Footage speed-up. Source seconds stay the unit for every cue; only the
+// output timeline shrinks, so changing speed re-times the whole edit at once.
+export const SPEED = (() => {
+  const s = CONFIG.speed ?? 1;
+  if (!Number.isFinite(s) || s <= 0) {
+    throw new Error(`Invalid speed ${CONFIG.speed}: must be a positive number`);
+  }
+  return s;
+})();
+
 // validate + normalize: finite, in bounds, sorted, overlapping/adjacent merged
 const normalizeCuts = (
   cuts: Array<[number, number]>
@@ -39,7 +49,10 @@ const normalizeCuts = (
 export const CUTS = normalizeCuts(CONFIG.cuts);
 
 const cutLen = CUTS.reduce((a, [f, t]) => a + (t - f), 0);
+// source seconds of footage that survive the cuts (before the speed-up)
 export const KEPT_DURATION = SRC_DURATION - cutLen;
+// what that becomes on the output timeline once sped up
+export const OUT_DURATION = KEPT_DURATION / SPEED;
 
 // kept segments in source time, with frame boundaries quantized ONCE so
 // consecutive segments tile the timeline exactly (no 1-frame gap/overlap)
@@ -60,8 +73,10 @@ export const SEGMENTS: Array<{
 
   return spans
     .map((s) => {
-      const startFrame = Math.round(s.out * FPS);
-      const endFrame = Math.round((s.out + s.dur) * FPS);
+      // both boundaries go through the same expression, so consecutive
+      // segments still tile exactly after the speed division
+      const startFrame = Math.round((s.out / SPEED) * FPS);
+      const endFrame = Math.round(((s.out + s.dur) / SPEED) * FPS);
       return {src: s.src, outFrame: startFrame, durFrames: endFrame - startFrame};
     })
     .filter((s) => s.durFrames > 0);
@@ -79,13 +94,15 @@ export const isRemoved = (tSrc: number): boolean =>
 
 // output-timeline seconds -> source-timeline seconds
 export const outToSrc = (tOut: number): number => {
+  // undo the speed-up first, then add back everything the cuts removed
+  const kept = tOut * SPEED;
   let removed = 0;
   for (const [f, t] of CUTS) {
-    if (tOut + removed >= f) {
+    if (kept + removed >= f) {
       removed += t - f;
     }
   }
-  return tOut + removed;
+  return kept + removed;
 };
 
 // source-timeline seconds -> output-timeline seconds
@@ -99,5 +116,5 @@ export const srcToOut = (tSrc: number): number => {
       removed += tSrc - f;
     }
   }
-  return tSrc - removed;
+  return (tSrc - removed) / SPEED;
 };

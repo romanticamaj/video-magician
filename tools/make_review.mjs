@@ -32,6 +32,7 @@ const subs = JSON.parse(fs.readFileSync('src/subtitles.json', 'utf8'));
 
 // --- cut mapping (mirror of src/engine/cuts.ts) ---
 const cuts = [...CONFIG.cuts].sort((a, b) => a[0] - b[0]);
+const SPEED = CONFIG.speed ?? 1;
 const coverOff = CONFIG.cover ? CONFIG.coverFrames / FPS : 0;
 const isRemoved = (t) => cuts.some(([f, to]) => t >= f && t < to);
 const srcToOut = (t) => {
@@ -40,7 +41,7 @@ const srcToOut = (t) => {
     if (t >= to) removed += to - f;
     else if (t > f) removed += t - f;
   }
-  return t - removed;
+  return (t - removed) / SPEED;
 };
 
 // --- thumbnail extraction ---
@@ -60,7 +61,8 @@ const thumb = (tSrc) => {
 
 // --- flatten reviewable items ---
 const cutLen = cuts.reduce((a, [f, t]) => a + (t - f), 0);
-const totalOut = coverOff + (CONFIG.srcDurationSec - cutLen) + CONFIG.outroFrames / FPS;
+const totalOut =
+  coverOff + (CONFIG.srcDurationSec - cutLen) / SPEED + CONFIG.outroFrames / FPS;
 const o = (tSrc) => srcToOut(Math.min(tSrc, CONFIG.srcDurationSec)) + coverOff;
 
 const items = [];
@@ -106,6 +108,25 @@ if (CONFIG.endCard) {
 cuts.forEach((c, i) =>
   add(`cut-${i}`, '剪輯', `剪掉 ${c[0]}s – ${c[1]}s（${(c[1] - c[0]).toFixed(2)}s）`, c[0] - 0.5, {from: c[0], to: c[1]}, [o(c[0]), o(c[0])])
 );
+// what SURVIVED the cuts — the unit a reviewer actually judges on a pure cut,
+// where there are no overlays to approve
+{
+  const kept = [];
+  let s = 0;
+  for (const [f, t] of cuts) {
+    if (f > s) kept.push([s, f]);
+    s = Math.max(s, t);
+  }
+  if (s < CONFIG.srcDurationSec) kept.push([s, CONFIG.srcDurationSec]);
+  kept.forEach(([f, t], i) =>
+    add(`keep-${i}`, '保留段', `保留 ${f.toFixed(2)}s – ${t.toFixed(2)}s（${(t - f).toFixed(2)}s）`, (f + t) / 2, {from: f, to: t}, [o(f), o(t)])
+  );
+}
+(CONFIG.fades ?? []).forEach((c, i) => {
+  const dur = c.durationSec ?? 0.6;
+  const hold = c.holdSec ?? 0;
+  add(`fade-${i}`, '轉場', `淡出淡入 ${dur}s（黑場停留 ${hold}s）`, c.at - 0.4, {at: c.at, durationSec: dur, holdSec: hold}, [o(c.at) - dur / 2 - hold / 2, o(c.at) + dur / 2 + hold / 2]);
+});
 CONFIG.sfx.cues.forEach((c, i) =>
   add(`sfx-${i}`, '音效', `音效 ${c.file}`, c.at, {at: c.at, volume: c.volume ?? 1}, [o(c.at), o(c.at) + (c.durationSec ?? 1.5)])
 );

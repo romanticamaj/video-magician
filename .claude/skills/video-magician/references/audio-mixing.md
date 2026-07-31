@@ -1,20 +1,42 @@
 # 音訊混音配方（ffmpeg）
 
-基準：先量人聲響度，所有相對音量以它為準。
+## 順序很重要：先整平人聲，再擺其他東西
+
+⚠️ **不要拿未處理的毛片人聲當基準。** 手持/手機錄的口白，句與句之間的音量差
+實測可以到 **22 dB**；配樂卻是幾乎恆定的。用「整段 integrated」去算相對音量會被
+平均值騙——帳面上配樂比人聲低 6 dB，實際上**安靜的句子會被配樂蓋過去**
+（實測最糟的一句配樂比人聲還大 8.7 dB）。
+
+所以第一步是把人聲整平到 **動態範圍 ≤ 8 dB**，之後所有相對音量才有意義：
 
 ```bash
-ffmpeg -i 毛片.mov -af ebur128=framelog=quiet -f null - 2>&1 | grep -A4 "Integrated loudness"
+# 對「合成後的來源檔」音軌做，處理完 mux 回去（-c:v copy）
+ffmpeg -y -i src_audio_raw.wav -af "\
+highpass=f=75,\
+afftdn=nr=14:nf=-48,\
+dynaudnorm=f=200:g=17:m=10:p=0.9,\
+acompressor=threshold=-26dB:ratio=3:attack=8:release=200:makeup=3,\
+alimiter=limit=0.95" -ar 48000 -ac 2 src_audio_leveled.wav
 ```
 
-## 配比
+`afftdn` 要放在 dynaudnorm **之前**——先降噪再抬電平，否則底噪被一起抬上來。
+驗收方式＝量**每一句字幕視窗**的 RMS，看 spread（見下方「驗收」）。
 
-| 元素 | 音量 |
-|---|---|
-| 人聲 | 不動（基準） |
-| SFX | 人聲 -13 dB 左右 |
-| BGM 基準 | 人聲 -6 dB |
-| Sidechain ducking | 講話時壓 2 dB |
-| 成品整體 | -14 LUFS integrated、true peak ≤ -1.5 dBTP |
+## 配比（speech-led，podcast／短影音）
+
+| 元素 | 目標 | 說明 |
+|---|---|---|
+| 人聲動態範圍 | **≤ 8 dB** | 整平後每句 RMS 的極差 |
+| 人聲 | -16 LUFS 左右 | 整平後的基準 |
+| SFX | 人聲 -13 dB | |
+| BGM（沒人講話時） | 人聲 **-8 dB** | 填空檔、有存在感 |
+| BGM（講話時，ducked） | 人聲 **-18 dB** | |
+| Sidechain 深度 | **8–10 dB** | 不是 2 dB |
+| **每句人聲 vs 配樂分離度** | **≥ +15 dB** | ← 真正要驗的指標 |
+| 成品整體 | -14 LUFS、TP ≤ -1.5 dBTP | |
+
+⚠️ 舊版這份文件寫「BGM 人聲 -6 dB、ducking 2 dB」是**錯的**——那是音樂為主的配比，
+用在口白影片上會讓人聲被蓋掉。2 dB 的 duck 對語音清晰度幾乎沒有作用。
 
 ## SFX 正規化
 
@@ -36,18 +58,50 @@ ffmpeg -y -i sfx.wav -af "loudnorm=I=-30:TP=-4:LRA=7" -ar 44100 -ac 2 sfx_n.wav
 ffmpeg -y -i bgm_raw.wav -i 毛片.mov -filter_complex "\
 [0:a]atrim=0:總長,loudnorm=I=<人聲-6>:TP=-4:LRA=9,aresample=44100[bgm];\
 [1:a]adelay=867|867,apad,aresample=44100[key];\
-[bgm][key]sidechaincompress=threshold=0.022:ratio=2:attack=12:release=400:makeup=1[out]" \
+[bgm][key]sidechaincompress=threshold=0.018:ratio=1.1:attack=12:release=400:makeup=1[out]" \
 -map "[out]" -t 總長 -ar 44100 -ac 2 public/bgm.wav
 ```
 
-校準：講話字句瞬間 RMS 通常比整段 RMS 高 6-8 dB（整段被停頓拉低），
-threshold 要設在字句 RMS 之下 8-10 dB 才會確實觸發。
-驗證方式＝量「連續講話 6 秒窗」vs「無聲空檔窗」的 LUFS 差：
+⚠️ **`ratio` 是深度的主控，不是 threshold**。壓縮量 ≈
+`(key 超出 threshold 的 dB) x (1 - 1/ratio)`，實測約為此估計的 1.4–1.8 倍
+（偵測器看短時峰值，比 RMS 高），所以一律「調 → 量 → 再調」。
+speech-led 要的 8–10 dB，整平後的人聲大約落在 **threshold 0.025 / ratio 3.3**
+（attack 15、release 500，release 太短會抽動）。
+
+threshold 只決定**什麼時候**開始壓：設在**房間底噪之上、字句 RMS 之下**。
+太低（低於底噪）會變成全程都壓 → 空檔也降，講話與空檔的對比消失。
+先量底噪與字句的 RMS 再決定：
 
 ```bash
-ffmpeg -ss <講話窗> -t 6 -i public/bgm.wav -af ebur128=framelog=quiet -f null - 2>&1 | grep "I:"
-ffmpeg -ss <空檔窗> -t 2 -i public/bgm.wav -af ebur128=framelog=quiet -f null - 2>&1 | grep "I:"
+ffmpeg -ss <字句窗> -t 2 -i <key> -af astats -f null - 2>&1 | grep -m1 "RMS level dB"
+ffmpeg -ss <空檔窗> -t 0.3 -i <key> -af astats -f null - 2>&1 | grep -m1 "RMS level dB"
 ```
+
+**驗證一定要跟「同一個 loudnorm 目標的未壓版」逐窗相減**，否則兩版的整體
+音量差會被誤讀成 ducking 深度（曾因此誤判空檔被壓了 2 dB）：
+
+```bash
+# 未壓參考版：跟正式版用完全相同的 loudnorm I 值
+ffmpeg -y -i bgm_raw.wav -af "loudnorm=I=<同上>:TP=-4:LRA=9" -t 總長 local/bgm_noduck.wav
+# 逐窗相減；目標＝講話窗 -2 dB 左右、空檔窗 0 dB
+```
+
+## 驗收：逐句量分離度（唯一可信的指標）
+
+整段 integrated 會騙人，**一定要逐句量**。做法：把成品減去無配樂版得到「混音裡的配樂」，
+再用 `src/subtitles.json` 的每一句視窗，比較人聲與配樂的 RMS：
+
+```bash
+# 1) 相位反相相加 → 殘差就是混音裡的配樂（注意 normalize=0，且不要再乘 2）
+ffmpeg -y -i out/final.mp4 -i out/nobgm.mp4 -filter_complex \
+  "[1:a]volume=-1[inv];[0:a][inv]amix=inputs=2:duration=shortest:normalize=0[r]" \
+  -map "[r]" local/bgm_residual.wav
+# 2) 逐句量 out/nobgm.mp4 與 local/bgm_residual.wav 的 RMS，相減
+```
+
+合格線：**每一句都 ≥ +15 dB**，沒有任何一句低於 +10 dB。
+實測案例：整平前 range -8.7…+17.2 dB（中位數 +4.6、16/19 句不及格）；
+整平＋加深 duck 後 +13.2…+24.2 dB（中位數 +20.2、0 句不及格）。
 
 ## 成品響度 mastering（不重渲染）
 
