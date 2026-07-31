@@ -12,15 +12,32 @@
 ```bash
 # 對「合成後的來源檔」音軌做，處理完 mux 回去（-c:v copy）
 ffmpeg -y -i src_audio_raw.wav -af "\
-highpass=f=75,\
-afftdn=nr=14:nf=-48,\
+highpass=f=85,\
+equalizer=f=300:t=q:w=1.2:g=-3,\
 dynaudnorm=f=200:g=17:m=10:p=0.9,\
 acompressor=threshold=-26dB:ratio=3:attack=8:release=200:makeup=3,\
+treble=g=4:f=3200:t=q:w=0.7,\
 alimiter=limit=0.95" -ar 48000 -ac 2 src_audio_leveled.wav
 ```
 
-`afftdn` 要放在 dynaudnorm **之前**——先降噪再抬電平，否則底噪被一起抬上來。
-驗收方式＝量**每一句字幕視窗**的 RMS，看 spread（見下方「驗收」）。
+🚫 **不要用降噪**（`afftdn` / `anlmdn` / `afwtdn` / `arnndn`）。實測代價遠大於效益：
+四個降噪器在房間錄音上都只換到 **0.5–1.4 dB** 的底噪下降，但頻譜相減會**優先吃掉
+最接近底噪的高頻**，聲音會變悶。這是站長明確的偏好，不是可選項。
+
+⚠️ **整平會讓聲音變悶，一定要補償。** 寬頻增益是「等比例放大房間」，不是放大人聲——
+實測把一句安靜台詞抬起來時：100–300 Hz **+22 dB**、2k–5k（清晰度）只有 **+15 dB**、
+5k–10k（空氣感）只有 **+11 dB**，等於高頻相對掉了 7–11 dB。所以鏈子裡有兩道補償：
+
+- `equalizer=f=300:g=-3` 削掉房間的箱音（悶的來源之一是低中頻堆積）
+- `treble=g=4:f=3200:t=q:w=0.7` 把壓縮與距離吃掉的清晰度加回來
+
+⚠️ `treble`／`bass` 的 `t` 是**寬度單位**不是形狀：`t=h` 會把 `w` 當成 Hz，
+而 `w` 預設 0.5 → 0.5 Hz 的極窄共振 → 高頻暴衝 50 dB、整軌削波。
+**一律寫成 `t=q:w=0.7`**。這個 bug 只有量頻譜才抓得到，聽感上會誤以為「變清楚了」。
+
+**驗收不只看 spread，還要看頻譜傾斜**：處理前後各量 5 個頻段的 RMS，
+2k–5k 的增益不能比 300–800 少超過 3 dB。差太多就加大 `treble` 的 g 值。
+逐句 spread 的量法見下方「驗收」。
 
 ## 配比（speech-led，podcast／短影音）
 
