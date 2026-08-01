@@ -52,11 +52,21 @@ border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:12px;alig
 h1{font-size:15px;margin:0}#stats{color:var(--dim);font-size:12px}
 button{cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--txt);border-radius:7px;padding:6px 12px;font-size:12.5px}
 #export{background:var(--acc);color:#1a1206;border:0;font-weight:700}
-main{max-width:900px;margin:0 auto;padding:14px 16px 90px}
+main{max-width:1240px;margin:0 auto;padding:14px 16px 90px}
 .clip{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:16px}
 .clip h2{font-size:13px;margin:0 0 8px;display:flex;gap:10px;align-items:baseline}
 .clip h2 .d{color:var(--dim);font-weight:400;font-size:12px}
-video{width:100%;max-height:260px;border-radius:8px;background:#000;margin-bottom:8px}
+video{width:100%;max-height:46vh;border-radius:8px;background:#000;margin-bottom:8px}
+.body{display:grid;grid-template-columns:minmax(280px,430px) minmax(0,1fr);gap:14px}
+.lpane{position:sticky;top:58px;align-self:start;z-index:10}
+.rows{max-height:calc(100vh - 130px);overflow-y:auto;padding-right:6px;overscroll-behavior:contain}
+.rows::-webkit-scrollbar{width:8px}
+.rows::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+.rows::-webkit-scrollbar-thumb:hover{background:hsl(240 8% 28%)}
+@media(max-width:860px){.body{display:block}
+.lpane{top:52px;background:var(--panel);padding-bottom:6px}
+video{max-height:30vh}
+.rows{max-height:none;overflow:visible;padding-right:0}}
 .strip{position:relative;height:20px;background:var(--panel2);border-radius:4px;margin-bottom:10px;cursor:pointer}
 .blk{position:absolute;top:2px;bottom:2px;border-radius:3px;min-width:3px;background:var(--ok);opacity:.85;cursor:pointer}
 .blk.del{background:var(--warn);opacity:.35}
@@ -90,8 +100,10 @@ DATA.clips.forEach((clip,ci)=>{
   clip.segments.forEach(s=>{state[s.id]={keep:true,text:s.text,orig:s.text};order.push(s.id);});
   const sec=document.createElement('section');sec.className='clip';
   sec.innerHTML='<h2>'+esc(clip.file)+' <span class="d mono">'+fmt(clip.duration)+' · '+clip.segments.length+' 句</span></h2>'+
+    '<div class="body"><div class="lpane">'+
     '<video id="v'+ci+'" src="'+esc(clip.fileUrl)+'" preload="metadata" controls playsinline onerror="this.style.display=\\'none\\'"></video>'+
-    '<div class="strip" id="strip'+ci+'"></div><div id="rows'+ci+'"></div>';
+    '<div class="strip" id="strip'+ci+'"></div></div>'+
+    '<div class="rows" id="rows'+ci+'"></div></div>';
   root.appendChild(sec);
   const strip=sec.querySelector('#strip'+ci);
   strip.onclick=e=>{const r=strip.getBoundingClientRect();seekClip(ci,(e.clientX-r.left)/r.width*clip.duration);};
