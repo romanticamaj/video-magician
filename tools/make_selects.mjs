@@ -1,8 +1,8 @@
 // selects step 2: render the stringout index as a pull-selects page
-// (out/selects.html). Every ASR sentence is a candidate span; the reviewer
-// checks spans to export, marks manual in/out ranges over any part of the
-// picture, splits spans at the playhead, and nudges edges — then exports
-// selects.decisions.json for apply_selects.py to cut with ffmpeg.
+// (out/selects.html). ASR sentences are checkable candidate spans; manual
+// spans are drag-selected on a full-width zoomable timeline (ctrl+wheel zoom,
+// shift+wheel pan), fine-tuned in a pending panel, then added to the export
+// list. Exports selects.decisions.json for apply_selects.py.
 //
 // Usage: node tools/make_selects.mjs [--index local/stringout.json]
 import fs from 'node:fs';
@@ -50,30 +50,54 @@ border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:12px;alig
 h1{font-size:15px;margin:0}#stats{color:var(--dim);font-size:12px}
 button{cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--txt);border-radius:7px;padding:6px 12px;font-size:12.5px}
 #export{background:var(--acc);color:#1a1206;border:0;font-weight:700}
-main{max-width:1240px;margin:0 auto;padding:14px 16px 90px}
+main{max-width:1400px;margin:0 auto;padding:14px 16px 90px}
 .clip{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:16px}
 .clip h2{font-size:13px;margin:0 0 8px;display:flex;gap:10px;align-items:baseline}
 .clip h2 .d{color:var(--dim);font-weight:400;font-size:12px}
-video{width:100%;max-height:46vh;border-radius:8px;background:#000;margin-bottom:6px}
+.clip h2 .hint{margin-left:auto;color:var(--dim);font-weight:400;font-size:11px}
+/* ---- full-width zoomable timeline ---- */
+.tlview{position:relative;overflow-x:auto;overflow-y:hidden;border-radius:6px;background:var(--panel2);
+margin-bottom:10px;cursor:crosshair;user-select:none;scrollbar-width:thin}
+.tlview::-webkit-scrollbar{height:8px}
+.tlview::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+.tlcanvas{position:relative;height:72px}
+.ruler-lab{position:absolute;top:1px;font-size:9.5px;color:color-mix(in srgb,var(--dim) 85%,transparent);transform:translateX(-50%);pointer-events:none}
+.ruler-tick{position:absolute;top:12px;height:4px;width:1px;background:color-mix(in srgb,var(--dim) 30%,transparent);pointer-events:none}
+.blk{position:absolute;border-radius:3px;min-width:3px;background:hsl(240 6% 32%);opacity:.9;cursor:pointer}
+.blk.asr{top:18px;height:22px}
+.blk.asr.on{background:var(--ok)}
+.blk.man{top:44px;height:22px;background:hsl(210 30% 32%)}
+.blk.man.on{background:var(--man)}
+.blk.sel{box-shadow:0 0 0 2px var(--acc);z-index:3;opacity:1}
+.blk .bl{font-size:9px;line-height:22px;padding:0 3px;color:#0e0e12;font-weight:700;
+white-space:nowrap;overflow:hidden;display:block;pointer-events:none}
+.ph{position:absolute;top:0;bottom:0;width:2px;background:var(--acc);pointer-events:none;z-index:5}
+.ph::before{content:"";position:absolute;top:0;left:-3px;border:4px solid transparent;border-top-color:var(--acc)}
+.selbox{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--man) 22%,transparent);
+border-left:1.5px solid var(--man);border-right:1.5px solid var(--man);pointer-events:none;z-index:4}
+/* ---- two-pane body ---- */
 .body{display:grid;grid-template-columns:minmax(280px,430px) minmax(0,1fr);gap:14px}
 .lpane{position:sticky;top:58px;align-self:start;z-index:10}
+video{width:100%;max-height:40vh;border-radius:8px;background:#000;margin-bottom:8px}
+.tcnow{color:var(--dim);font-size:12px;text-align:right;margin-bottom:6px}
+/* pending selection panel */
+.pend{border:1px dashed var(--man);border-radius:10px;padding:10px;margin-bottom:8px}
+.pend.off{opacity:.45;border-style:dotted}
+.pend .ttl{font-size:11.5px;color:var(--man);letter-spacing:1px;margin-bottom:6px}
+.pend .r{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.pend input[type=text]{flex:1;min-width:120px;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:5px 8px;font-size:12.5px}
+.pend input.n{width:74px;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:5px 6px;font-size:12.5px;text-align:right}
+.pend input:focus{outline:none;border-color:var(--acc)}
+.pend .dur{color:var(--dim);font-size:11.5px}
+.pend .add{background:var(--man);color:#0e1620;border:0;font-weight:700}
 .rows{max-height:calc(100vh - 130px);overflow-y:auto;padding-right:6px;overscroll-behavior:contain}
 .rows::-webkit-scrollbar{width:8px}
 .rows::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
-.rows::-webkit-scrollbar-thumb:hover{background:hsl(240 8% 28%)}
 @media(max-width:860px){.body{display:block}
 .lpane{top:52px;background:var(--panel);padding-bottom:6px}
-video{max-height:30vh}
+video{max-height:28vh}
 .rows{max-height:none;overflow:visible;padding-right:0}}
-.ctl{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
-.ctl .tcnow{margin-left:auto;color:var(--dim);font-size:12px}
-.strip{position:relative;height:34px;background:var(--panel2);border-radius:5px;margin-bottom:10px;cursor:pointer;overflow:hidden}
-.blk{position:absolute;top:3px;bottom:3px;border-radius:3px;min-width:3px;background:hsl(240 6% 30%);opacity:.85;cursor:pointer}
-.blk.on{background:var(--ok)}
-.blk.man{top:19px;background:hsl(210 30% 30%)}.blk.man.on{background:var(--man)}
-.blk.sel{box-shadow:0 0 0 2px var(--acc);z-index:3;opacity:1}
-.ph{position:absolute;top:0;bottom:0;width:2px;background:var(--acc);pointer-events:none;z-index:5}
-.inmark{position:absolute;top:0;bottom:0;width:2px;background:var(--man);pointer-events:none;z-index:4;border-left:2px dashed var(--man)}
+/* rows */
 .seg{display:flex;gap:8px;align-items:center;padding:4px 8px;border-left:3px solid transparent;border-radius:6px;margin-bottom:2px}
 .seg:hover{background:var(--panel2)}.seg.sel{background:var(--panel2);box-shadow:0 0 0 1.5px var(--acc)}
 .seg.on{border-left-color:var(--ok)}.seg.man.on{border-left-color:var(--man)}
@@ -93,8 +117,9 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padd
 <header><h1>⭕ selects</h1><span id="stats" class="mono"></span><span style="flex:1"></span>
 <button id="export">匯出 decisions</button></header>
 <main>
-<div id="keys"><kbd>space</kbd> 播放 · <kbd>←</kbd><kbd>→</kbd> ±0.5s · <kbd>i</kbd> 標入點 · <kbd>o</kbd> 標出點成段 ·
-<kbd>s</kbd> 在播放頭切割 · <kbd>e</kbd> 勾/取消 · <kbd>↑</kbd><kbd>↓</kbd> 換段 · 上排=語音段、下排=手動圈選</div>
+<div id="keys"><b>時間軸：</b>滑鼠<b>拖曳＝圈選</b>（微調後按「加入」）· 點一下＝跳播 ·
+<kbd>ctrl</kbd>+滾輪＝縮放 · <kbd>shift</kbd>+滾輪＝平移 ·
+<b>鍵盤：</b><kbd>space</kbd> 播放 · <kbd>←</kbd><kbd>→</kbd> ±0.5s · <kbd>s</kbd> 播放頭切割 · <kbd>e</kbd> 勾/取消 · <kbd>↑</kbd><kbd>↓</kbd> 換段</div>
 <div id="clips"></div>
 </main>
 <script>
@@ -103,59 +128,176 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const fmt=t=>{const m=Math.floor(t/60),s=Math.round((t%60)*10)/10;return s>=60?(m+1)+':00.0':m+':'+(s<10?'0':'')+s.toFixed(1)};
 let seq=0;const newId=ci=>'m'+ci+'-'+(++seq);
 let selId=null,activeClip=0;
-const inPoint={};  // pending in-mark per clip
+const zoom={},pend={};  // per-clip zoom factor / pending manual selection
 const root=document.getElementById('clips');
 
 DATA.clips.forEach((clip,ci)=>{
+  zoom[ci]=1;pend[ci]=null;
   const sec=document.createElement('section');sec.className='clip';sec.dataset.ci=ci;
-  sec.innerHTML='<h2>'+esc(clip.file)+' <span class="d mono">'+fmt(clip.duration)+'</span></h2>'+
+  sec.innerHTML='<h2>'+esc(clip.file)+' <span class="d mono">'+fmt(clip.duration)+'</span>'+
+    '<span class="hint">拖曳圈選 · ctrl+滾輪縮放 · shift+滾輪平移</span></h2>'+
+    '<div class="tlview" id="tlv'+ci+'"><div class="tlcanvas" id="tlc'+ci+'"></div></div>'+
     '<div class="body"><div class="lpane">'+
     '<video id="v'+ci+'" src="'+esc(clip.fileUrl)+'" preload="metadata" controls playsinline onerror="this.style.display=\\'none\\'"></video>'+
-    '<div class="ctl"><button data-i>標入點 (i)</button><button data-o>標出點成段 (o)</button>'+
-    '<button data-s>切割 (s)</button><span class="tcnow mono" id="tc'+ci+'"></span></div>'+
-    '<div class="strip" id="strip'+ci+'"><div class="ph" id="ph'+ci+'" style="left:0"></div></div>'+'</div>'+
-    
+    '<div class="tcnow mono" id="tc'+ci+'"></div>'+
+    '<div class="pend off" id="pend'+ci+'"><div class="ttl">手動圈選</div>'+
+    '<div class="r"><input class="n mono" data-p="start" placeholder="起"><span>–</span>'+
+    '<input class="n mono" data-p="end" placeholder="訖"><span class="dur" id="pdur'+ci+'">在時間軸上拖曳一段</span></div>'+
+    '<div class="r"><input type="text" data-p="label" placeholder="備註（要這段做什麼）">'+
+    '<button data-prev>▶ 試聽</button><button class="add" data-add>加入 ↩</button><button data-clr>清除</button></div></div></div>'+
     '<div class="rows" id="rows'+ci+'"></div></div>';
   root.appendChild(sec);
   sec.addEventListener('pointerdown',()=>{activeClip=ci;});
-  sec.querySelector('[data-i]').onclick=()=>markIn(ci);
-  sec.querySelector('[data-o]').onclick=()=>markOut(ci);
-  sec.querySelector('[data-s]').onclick=()=>splitAt(ci);
-  const strip=sec.querySelector('#strip'+ci);
-  strip.onclick=e=>{if(e.target.classList.contains('blk'))return;
-    const r=strip.getBoundingClientRect();seek(ci,(e.clientX-r.left)/r.width*clip.duration);};
-  render(ci);
+  wireTimeline(ci);
+  wirePend(ci);
+  renderRows(ci);rebuildTl(ci);
   const v=document.getElementById('v'+ci);
   if(v){(function loop(){
     const t=v.currentTime||0;
-    document.getElementById('ph'+ci).style.left=(t/clip.duration*100)+'%';
-    document.getElementById('tc'+ci).textContent=fmt(t)+' / '+fmt(clip.duration)+(inPoint[ci]!=null?'　in@'+fmt(inPoint[ci]):'');
+    const ph=document.getElementById('ph'+ci);
+    if(ph)ph.style.left=(t*pps(ci))+'px';
+    document.getElementById('tc'+ci).textContent=fmt(t)+' / '+fmt(clip.duration);
     requestAnimationFrame(loop);})();}
 });
 
-function seek(ci,t){const v=document.getElementById('v'+ci);
-  if(!v||v.style.display==='none')return;
-  const tt=Math.min(Math.max(0,t),DATA.clips[ci].duration-0.05);
-  if(v.readyState===0){v.load();v.addEventListener('loadedmetadata',()=>{v.currentTime=tt},{once:true});}
-  else v.currentTime=tt;}
-function curT(ci){const v=document.getElementById('v'+ci);return v?v.currentTime||0:0;}
+const CLIPOF={};const reindex=()=>{for(const k in CLIPOF)delete CLIPOF[k];
+  DATA.clips.forEach((c,ci)=>c.spans.forEach(s=>CLIPOF[s.id]={ci,s}));};
+reindex();
 
-function render(ci){
+// ---- timeline geometry ----
+function viewW(ci){return document.getElementById('tlv'+ci).clientWidth||800;}
+function pps(ci){return (viewW(ci)/DATA.clips[ci].duration)*zoom[ci];}
+function xToT(ci,clientX){
+  const tlv=document.getElementById('tlv'+ci);
+  const r=tlv.getBoundingClientRect();
+  return Math.min(Math.max(0,(clientX-r.left+tlv.scrollLeft)/pps(ci)),DATA.clips[ci].duration);}
+
+function rebuildTl(ci){
   const clip=DATA.clips[ci];
+  const c=document.getElementById('tlc'+ci);
+  const P=pps(ci);
+  c.style.width=(clip.duration*P)+'px';
+  c.innerHTML='';
+  const ladder=[0.2,0.5,1,2,5,10,15,30,60,120];
+  const iv=ladder.find(i=>i*P>=70)||120;
+  for(let t=0;t<=clip.duration;t+=iv){
+    c.insertAdjacentHTML('beforeend','<span class="ruler-lab mono" style="left:'+(t*P)+'px">'+fmt(t)+'</span>');}
+  for(let t=0;t<=clip.duration;t+=iv/5){
+    c.insertAdjacentHTML('beforeend','<span class="ruler-tick" style="left:'+(t*P)+'px"></span>');}
   clip.spans.sort((a,b)=>a.start-b.start);
-  const strip=document.getElementById('strip'+ci);
-  strip.querySelectorAll('.blk,.inmark').forEach(e=>e.remove());
-  const rows=document.getElementById('rows'+ci);rows.innerHTML='';
   for(const sp of clip.spans){
     const b=document.createElement('div');
-    b.className='blk'+(sp.origin==='manual'?' man':'')+(sp.export?' on':'')+(sp.id===selId?' sel':'');
+    b.className='blk '+(sp.origin==='manual'?'man':'asr')+(sp.export?' on':'')+(sp.id===selId?' sel':'');
     b.id='blk-'+sp.id;
-    b.style.left=(sp.start/clip.duration*100)+'%';
-    b.style.width=Math.max((sp.end-sp.start)/clip.duration*100,.4)+'%';
-    b.title=sp.label;
+    b.style.left=(sp.start*P)+'px';
+    b.style.width=Math.max((sp.end-sp.start)*P,3)+'px';
+    b.title=fmt(sp.start)+'–'+fmt(sp.end)+' '+sp.label;
+    if((sp.end-sp.start)*P>34)b.innerHTML='<span class="bl">'+esc(sp.label)+'</span>';
+    b.onpointerdown=e=>e.stopPropagation();
     b.onclick=e=>{e.stopPropagation();select(sp.id,true);};
     b.ondblclick=e=>{e.stopPropagation();toggle(sp.id);};
-    strip.appendChild(b);
+    c.appendChild(b);
+  }
+  const p=pend[ci];
+  if(p)c.insertAdjacentHTML('beforeend',
+    '<div class="selbox" style="left:'+(p.start*P)+'px;width:'+((p.end-p.start)*P)+'px"></div>');
+  c.insertAdjacentHTML('beforeend','<div class="ph" id="ph'+ci+'" style="left:0"></div>');
+  const v=document.getElementById('v'+ci);
+  if(v){const ph=document.getElementById('ph'+ci);if(ph)ph.style.left=((v.currentTime||0)*P)+'px';}
+}
+
+// ---- timeline interactions: drag-select / click-seek / zoom / pan ----
+function wireTimeline(ci){
+  const tlv=document.getElementById('tlv'+ci);
+  let drag=null;
+  tlv.addEventListener('pointerdown',e=>{
+    if(e.button!==0)return;
+    drag={x0:e.clientX,t0:xToT(ci,e.clientX),moved:false};
+    tlv.setPointerCapture(e.pointerId);
+  });
+  tlv.addEventListener('pointermove',e=>{
+    if(!drag)return;
+    if(Math.abs(e.clientX-drag.x0)>4)drag.moved=true;
+    if(drag.moved){
+      const t1=xToT(ci,e.clientX);
+      pend[ci]={start:Math.round(Math.min(drag.t0,t1)*100)/100,
+                end:Math.round(Math.max(drag.t0,t1)*100)/100,
+                label:pend[ci]?pend[ci].label:''};
+      rebuildTl(ci);paintPend(ci);
+    }
+  });
+  tlv.addEventListener('pointerup',e=>{
+    if(!drag)return;
+    if(!drag.moved)seek(ci,drag.t0);
+    else seek(ci,pend[ci].start);
+    drag=null;
+  });
+  tlv.addEventListener('wheel',e=>{
+    if(e.ctrlKey){
+      e.preventDefault();
+      const tCur=xToT(ci,e.clientX);
+      const r=tlv.getBoundingClientRect();
+      const maxZ=Math.max(1,250/(viewW(ci)/DATA.clips[ci].duration));
+      zoom[ci]=Math.min(maxZ,Math.max(1,zoom[ci]*Math.exp(-e.deltaY/300)));
+      rebuildTl(ci);
+      tlv.scrollLeft=tCur*pps(ci)-(e.clientX-r.left);
+    }else if(e.shiftKey){
+      e.preventDefault();
+      tlv.scrollLeft+=(e.deltaY||e.deltaX);
+    }
+  },{passive:false});
+}
+
+// ---- pending panel ----
+function paintPend(ci){
+  const box=document.getElementById('pend'+ci);
+  const p=pend[ci];
+  box.classList.toggle('off',!p);
+  const S=box.querySelector('[data-p=start]'),E=box.querySelector('[data-p=end]');
+  const L=box.querySelector('[data-p=label]');
+  if(p){
+    if(document.activeElement!==S)S.value=p.start.toFixed(2);
+    if(document.activeElement!==E)E.value=p.end.toFixed(2);
+    if(document.activeElement!==L)L.value=p.label||'';
+    document.getElementById('pdur'+ci).textContent='長度 '+(p.end-p.start).toFixed(2)+'s';
+  }else{
+    S.value='';E.value='';L.value='';
+    document.getElementById('pdur'+ci).textContent='在時間軸上拖曳一段';
+  }
+}
+function wirePend(ci){
+  const box=document.getElementById('pend'+ci);
+  const clip=DATA.clips[ci];
+  box.querySelectorAll('input.n').forEach(inp=>{
+    inp.onchange=()=>{
+      const p=pend[ci]||{start:0,end:Math.min(2,clip.duration),label:''};
+      const v=Number(inp.value);
+      if(Number.isFinite(v))p[inp.dataset.p]=Math.min(Math.max(0,v),clip.duration);
+      if(p.end<=p.start)p.end=Math.min(p.start+0.2,clip.duration);
+      pend[ci]=p;rebuildTl(ci);paintPend(ci);};});
+  box.querySelector('[data-p=label]').oninput=e=>{if(pend[ci])pend[ci].label=e.target.value;};
+  box.querySelector('[data-add]').onclick=()=>{
+    const p=pend[ci];if(!p)return;
+    const sp={id:newId(ci),start:p.start,end:p.end,label:p.label||'',origin:'manual',export:true,img:''};
+    clip.spans.push(sp);reindex();
+    pend[ci]=null;
+    rebuildTl(ci);renderRows(ci);paintPend(ci);stats();
+    select(sp.id,false);};
+  box.querySelector('[data-clr]').onclick=()=>{pend[ci]=null;rebuildTl(ci);paintPend(ci);};
+  box.querySelector('[data-prev]').onclick=()=>{
+    const p=pend[ci];if(!p)return;
+    const v=document.getElementById('v'+ci);if(!v)return;
+    seek(ci,p.start);v.play();
+    const stop=()=>{if(v.currentTime>=p.end){v.pause();v.removeEventListener('timeupdate',stop);}};
+    v.addEventListener('timeupdate',stop);};
+}
+
+// ---- rows ----
+function renderRows(ci){
+  const clip=DATA.clips[ci];
+  clip.spans.sort((a,b)=>a.start-b.start);
+  const rows=document.getElementById('rows'+ci);rows.innerHTML='';
+  for(const sp of clip.spans){
     const r=document.createElement('div');
     r.className='seg'+(sp.origin==='manual'?' man':'')+(sp.export?' on':'')+(sp.id===selId?' sel':'');
     r.id='seg-'+sp.id;
@@ -174,40 +316,35 @@ function render(ci){
       inp.onchange=()=>{const v=Number(inp.value);
         if(Number.isFinite(v))sp[inp.dataset.f]=Math.min(Math.max(0,v),clip.duration);
         if(sp.end<=sp.start)sp.end=sp.start+0.2;
-        render(ci);stats();};});
+        renderRows(ci);rebuildTl(ci);stats();};});
     const lb=r.querySelector('.lb');
     lb.onfocus=()=>select(sp.id,false);
     lb.oninput=e=>{sp.label=e.target.value;};
     r.querySelector('[data-del]').onclick=()=>{
-      clip.spans=clip.spans.filter(x=>x.id!==sp.id);
+      clip.spans=clip.spans.filter(x=>x.id!==sp.id);reindex();
       if(selId===sp.id)selId=null;
-      render(ci);stats();};
+      renderRows(ci);rebuildTl(ci);stats();};
   }
-  if(inPoint[ci]!=null){
-    const m=document.createElement('div');m.className='inmark';
-    m.style.left=(inPoint[ci]/clip.duration*100)+'%';strip.appendChild(m);}
 }
 
-const ALL=()=>DATA.clips.flatMap((c,ci)=>c.spans.map(s=>({ci,s})));
-function findSpan(id){for(const {ci,s} of ALL())if(s.id===id)return{ci,s};return null;}
+// ---- shared actions ----
+function seek(ci,t){const v=document.getElementById('v'+ci);
+  if(!v||v.style.display==='none')return;
+  const tt=Math.min(Math.max(0,t),DATA.clips[ci].duration-0.05);
+  if(v.readyState===0){v.load();v.addEventListener('loadedmetadata',()=>{v.currentTime=tt},{once:true});}
+  else v.currentTime=tt;}
+function curT(ci){const v=document.getElementById('v'+ci);return v?v.currentTime||0:0;}
 function select(id,seekTo){
-  selId=id;const hit=findSpan(id);if(!hit)return;
+  selId=id;const hit=CLIPOF[id];if(!hit)return;
   activeClip=hit.ci;
-  DATA.clips.forEach((_,ci)=>render(ci));
+  DATA.clips.forEach((_,ci)=>{renderRows(ci);rebuildTl(ci);});
   const row=document.getElementById('seg-'+id);
   if(row)row.scrollIntoView({block:'nearest'});
-  if(seekTo)seek(hit.ci,hit.s.start+0.02);
-}
-function toggle(id){const hit=findSpan(id);if(!hit)return;
-  hit.s.export=!hit.s.export;render(hit.ci);stats();}
-function markIn(ci){inPoint[ci]=curT(ci);render(ci);}
-function markOut(ci){
-  const t=curT(ci);
-  if(inPoint[ci]==null||t<=inPoint[ci])return;
-  const sp={id:newId(ci),start:Math.round(inPoint[ci]*100)/100,end:Math.round(t*100)/100,
-    label:'',origin:'manual',export:true,img:''};
-  DATA.clips[ci].spans.push(sp);
-  inPoint[ci]=null;render(ci);stats();select(sp.id,false);}
+  const blk=document.getElementById('blk-'+id);
+  if(blk)blk.scrollIntoView({block:'nearest',inline:'nearest'});
+  if(seekTo)seek(hit.ci,hit.s.start+0.02);}
+function toggle(id){const hit=CLIPOF[id];if(!hit)return;
+  hit.s.export=!hit.s.export;renderRows(hit.ci);rebuildTl(hit.ci);stats();}
 function splitAt(ci){
   const t=curT(ci);
   const clip=DATA.clips[ci];
@@ -216,14 +353,16 @@ function splitAt(ci){
   if(!sp)return;
   const right={...sp,id:newId(ci),start:Math.round(t*100)/100,img:''};
   sp.end=Math.round(t*100)/100;
-  clip.spans.push(right);
-  render(ci);stats();select(right.id,false);}
+  clip.spans.push(right);reindex();
+  renderRows(ci);rebuildTl(ci);stats();select(right.id,false);}
 function move(d){
-  const list=ALL();const i=list.findIndex(x=>x.s.id===selId);
+  const list=DATA.clips.flatMap(c=>c.spans);
+  const i=list.findIndex(s=>s.id===selId);
   const n=list[Math.min(list.length-1,Math.max(0,i+d))];
-  if(n)select(n.s.id,true);}
+  if(n)select(n.id,true);}
 function stats(){
-  const spans=ALL().map(x=>x.s);const on=spans.filter(s=>s.export);
+  const spans=DATA.clips.flatMap(c=>c.spans);
+  const on=spans.filter(s=>s.export);
   const dur=on.reduce((a,s)=>a+(s.end-s.start),0);
   document.getElementById('stats').textContent=spans.length+' 段 · 勾選 '+on.length+' · 匯出約 '+fmt(dur);}
 
@@ -235,13 +374,13 @@ document.addEventListener('keydown',e=>{
     if(v)v.paused?v.play():v.pause();}
   else if(e.key==='ArrowLeft')seek(ci,curT(ci)-0.5);
   else if(e.key==='ArrowRight')seek(ci,curT(ci)+0.5);
-  else if(e.key==='i')markIn(ci);
-  else if(e.key==='o')markOut(ci);
   else if(e.key==='s')splitAt(ci);
   else if(e.key==='e'&&selId)toggle(selId);
   else if(e.key==='ArrowUp'){e.preventDefault();move(-1);}
   else if(e.key==='ArrowDown'){e.preventDefault();move(1);}
 });
+
+window.addEventListener('resize',()=>DATA.clips.forEach((_,ci)=>rebuildTl(ci)));
 
 document.getElementById('export').onclick=()=>{
   const out={generatedAt:new Date().toISOString(),clips:DATA.clips.map(c=>({
