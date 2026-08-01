@@ -332,10 +332,20 @@ const rangeStop={};
 function playRange(ci,start,end){
   const v=document.getElementById('v'+ci);
   if(!v||v.style.display==='none')return;
-  if(rangeStop[ci]){v.removeEventListener('timeupdate',rangeStop[ci]);rangeStop[ci]=null;}
+  if(rangeStop[ci]){cancelAnimationFrame(rangeStop[ci]);rangeStop[ci]=null;}
   seek(ci,start);v.play();
-  const stop=()=>{if(v.currentTime>=end){v.pause();v.removeEventListener('timeupdate',stop);rangeStop[ci]=null;}};
-  rangeStop[ci]=stop;v.addEventListener('timeupdate',stop);
+  // frame-accurate stop: rAF watcher (timeupdate is too coarse — overshoots
+  // up to 250ms), and snap to the exact end so the playhead lands on the
+  // selection's right edge instead of a few frames past it
+  let started=false;
+  const tick=()=>{
+    if(v.seeking){rangeStop[ci]=requestAnimationFrame(tick);return;}
+    if(!v.paused)started=true;
+    if(started&&v.paused){rangeStop[ci]=null;return;}
+    if(v.currentTime>=end-1/60){v.pause();v.currentTime=end;rangeStop[ci]=null;return;}
+    rangeStop[ci]=requestAnimationFrame(tick);
+  };
+  rangeStop[ci]=requestAnimationFrame(tick);
 }
 function seek(ci,t){const v=document.getElementById('v'+ci);
   if(!v||v.style.display==='none')return;
