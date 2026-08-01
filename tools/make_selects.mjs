@@ -286,10 +286,7 @@ function wirePend(ci){
   box.querySelector('[data-clr]').onclick=()=>{pend[ci]=null;rebuildTl(ci);paintPend(ci);};
   box.querySelector('[data-prev]').onclick=()=>{
     const p=pend[ci];if(!p)return;
-    const v=document.getElementById('v'+ci);if(!v)return;
-    seek(ci,p.start);v.play();
-    const stop=()=>{if(v.currentTime>=p.end){v.pause();v.removeEventListener('timeupdate',stop);}};
-    v.addEventListener('timeupdate',stop);};
+    playRange(ci,p.start,p.end);};
 }
 
 // ---- rows ----
@@ -307,6 +304,7 @@ function renderRows(ci){
       '<span class="t"><input value="'+sp.start.toFixed(2)+'" data-f="start"></span>'+
       '<span class="t"><input value="'+sp.end.toFixed(2)+'" data-f="end"></span>'+
       '<input class="lb" value="'+esc(sp.label)+'" placeholder="（備註）">'+
+      '<button class="op" data-play title="試聽這段">▶</button>'+
       '<button class="op" data-del>✕</button>';
     rows.appendChild(r);
     r.querySelector('input[type=checkbox]').onchange=()=>toggle(sp.id);
@@ -320,6 +318,8 @@ function renderRows(ci){
     const lb=r.querySelector('.lb');
     lb.onfocus=()=>select(sp.id,false);
     lb.oninput=e=>{sp.label=e.target.value;};
+    r.querySelector('[data-play]').onclick=()=>{
+      select(sp.id,false);playRange(ci,sp.start,sp.end);};
     r.querySelector('[data-del]').onclick=()=>{
       clip.spans=clip.spans.filter(x=>x.id!==sp.id);reindex();
       if(selId===sp.id)selId=null;
@@ -328,6 +328,15 @@ function renderRows(ci){
 }
 
 // ---- shared actions ----
+const rangeStop={};
+function playRange(ci,start,end){
+  const v=document.getElementById('v'+ci);
+  if(!v||v.style.display==='none')return;
+  if(rangeStop[ci]){v.removeEventListener('timeupdate',rangeStop[ci]);rangeStop[ci]=null;}
+  seek(ci,start);v.play();
+  const stop=()=>{if(v.currentTime>=end){v.pause();v.removeEventListener('timeupdate',stop);rangeStop[ci]=null;}};
+  rangeStop[ci]=stop;v.addEventListener('timeupdate',stop);
+}
 function seek(ci,t){const v=document.getElementById('v'+ci);
   if(!v||v.style.display==='none')return;
   const tt=Math.min(Math.max(0,t),DATA.clips[ci].duration-0.05);
