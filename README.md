@@ -35,6 +35,13 @@ skill transcribes every clip into an interactive stringout page (toggle
 sentences to delete, fix transcripts inline), assembles the kept spans into a
 master, and hands off to the pipeline above.
 
+Hours of material where only scattered moments matter? Start one stage
+earlier with [`selects`](.claude/skills/selects/SKILL.md): a pull-selects page
+where ASR sentences are one-click candidates and any stretch of picture —
+speech or not — can be circled with in/out points and split at the playhead;
+checked spans are cut into a clip folder that feeds rough-cut.
+The full chain: **selects → rough-cut → video-magician**.
+
 The skill also **self-learns**. Corrections you make are distilled into rules that shape the next video, sorted by kind: craft invariants that break the cut when violated go to
 [`references/editing-principles.md`](.claude/skills/video-magician/references/editing-principles.md)
 (read before every job), while softer preferences accumulate in

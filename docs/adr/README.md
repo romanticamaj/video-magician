@@ -12,3 +12,4 @@
 | [0008](0008-hitl-review-loop.md) | Gated human review via a flattened item manifest | Accepted |
 | [0009](0009-motion-vocabulary.md) | Curated motion vocabulary with config-driven camera moves | Accepted |
 | [0010](0010-rough-cut-stringout.md) | rough-cut: transcript stringout as the multi-clip entry point | Accepted |
+| [0011](0011-selects-pull.md) | selects: dual-mode span marking upstream of rough-cut | Accepted |

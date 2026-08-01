@@ -65,4 +65,6 @@ master 已是乾淨粗剪，videoConfig 的 `cuts` 通常留空；後續微調�
   想保畫面刪聲音是另一回事，跟使用者確認。
 - 無語音的 b-roll clip 會沒有 segments：在索引後主動問使用者「這支要
   整段保留/丟棄/取哪段」，手動補進 decisions（`keep` 一個涵蓋整段的假 segment）。
+  素材量大、b-roll 多、只有零星片段要用時，建議改從上游 `selects` skill 開始
+  （手動圈選＋切割做得更好），切出的片段資料夾再進本 skill。
 - decisions 套用後如果使用者又要改，重跑 apply 即可（決策檔是唯一真相源）。
