@@ -27,7 +27,12 @@ claude   # open in Claude Code
 
 > 幫這支影片上字幕、上特效：`C:\path\to\footage.mov`
 
-That's it. The in-repo skill ([`.claude/skills/video-magician`](.claude/skills/video-magician/SKILL.md)) takes over: it probes the footage, transcribes and aligns subtitles, fills in the video config, sources and normalizes audio, renders, verifies frames against the result, and masters the output — iterating with you in plain language ("字太小" / "這段剪掉" / "BGM 小聲一點").
+That's it. The agent runs **intake** first — asks where the footage is, files it
+into a per-project workspace under `projects/<slug>/`, and offers the pipeline
+stages below. Projects never clobber each other; switch with
+`python tools/project.py activate <slug>`. Full protocol: [AGENTS.md](AGENTS.md).
+
+Then the in-repo skill ([`.claude/skills/video-magician`](.claude/skills/video-magician/SKILL.md)) takes over: it probes the footage, transcribes and aligns subtitles, fills in the video config, sources and normalizes audio, renders, verifies frames against the result, and masters the output — iterating with you in plain language ("字太小" / "這段剪掉" / "BGM 小聲一點").
 
 Starting from a **pile of raw clips** instead of one edited master? Say
 "這堆毛片幫我剪成一支" — the [`rough-cut`](.claude/skills/rough-cut/SKILL.md)

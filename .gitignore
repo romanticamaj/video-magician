@@ -11,6 +11,9 @@ src/videoConfig.ts
 src/subtitles.json
 tools/captions.json
 
+# per-project workspaces (raw footage, project data, deliverables)
+projects/
+
 # pipeline intermediates
 whisper*.json
 local/
